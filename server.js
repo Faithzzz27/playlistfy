@@ -25,6 +25,13 @@ app.get('/login.html', (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Catches errors from async routes (e.g. database problems)
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch((error) => {
+    console.error(error);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  });
+
 function getUsernameFromRequest(req) {
   const headerUser = req.headers['x-user'];
   const queryUser = req.query.user;
@@ -43,50 +50,50 @@ function requireLogin(req, res, next) {
   next();
 }
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', asyncHandler(async (req, res) => {
   const { username, password } = req.body || {};
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required.' });
   }
 
-  const user = authenticateUser(username, password);
+  const user = await authenticateUser(username, password);
 
   if (!user) {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
 
   res.json({ username: user.username, message: 'Login successful.' });
-});
+}));
 
-app.post('/api/register', (req, res) => {
+app.post('/api/register', asyncHandler(async (req, res) => {
   const { username, password } = req.body || {};
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required.' });
   }
 
-  const newUser = createUser(username, password);
+  const newUser = await createUser(username, password);
 
   if (!newUser) {
     return res.status(409).json({ error: 'Username already exists.' });
   }
 
   res.status(201).json({ username: newUser.username, message: 'Account created successfully.' });
-});
+}));
 
-app.get('/api/music', requireLogin, (req, res) => {
+app.get('/api/music', requireLogin, asyncHandler(async (req, res) => {
   const username = getUsernameFromRequest(req);
-  res.json(getUserPlaylist(username));
-});
+  res.json(await getUserPlaylist(username));
+}));
 
-app.get('/api/playlists', requireLogin, (req, res) => {
+app.get('/api/playlists', requireLogin, asyncHandler(async (req, res) => {
   const username = getUsernameFromRequest(req);
-  const playlists = getUserPlaylists(username);
+  const playlists = await getUserPlaylists(username);
   res.json(playlists);
-});
+}));
 
-app.post('/api/playlists', requireLogin, (req, res) => {
+app.post('/api/playlists', requireLogin, asyncHandler(async (req, res) => {
   const { name } = req.body || {};
   const username = getUsernameFromRequest(req);
 
@@ -94,16 +101,16 @@ app.post('/api/playlists', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Playlist name is required.' });
   }
 
-  const newPlaylist = createPlaylist(username, name);
+  const newPlaylist = await createPlaylist(username, name);
 
   if (!newPlaylist) {
     return res.status(409).json({ error: 'Playlist name already exists.' });
   }
 
   res.status(201).json(newPlaylist);
-});
+}));
 
-app.post('/api/music', requireLogin, (req, res) => {
+app.post('/api/music', requireLogin, asyncHandler(async (req, res) => {
   const { song, artist, genre } = req.body || {};
   const username = getUsernameFromRequest(req);
 
@@ -111,7 +118,7 @@ app.post('/api/music', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Song, artist, and genre are required.' });
   }
 
-  const records = getUserPlaylist(username);
+  const records = await getUserPlaylist(username);
   const newRecord = {
     id: getNextId(records),
     song: String(song).trim(),
@@ -120,13 +127,13 @@ app.post('/api/music', requireLogin, (req, res) => {
   };
 
   records.push(newRecord);
-  saveUserPlaylist(username, records);
+  await saveUserPlaylist(username, records);
   res.status(201).json(newRecord);
-});
+}));
 
-app.get('/api/music/:id', requireLogin, (req, res) => {
+app.get('/api/music/:id', requireLogin, asyncHandler(async (req, res) => {
   const username = getUsernameFromRequest(req);
-  const records = getUserPlaylist(username);
+  const records = await getUserPlaylist(username);
   const record = records.find((item) => item.id === Number(req.params.id));
 
   if (!record) {
@@ -134,9 +141,9 @@ app.get('/api/music/:id', requireLogin, (req, res) => {
   }
 
   res.json(record);
-});
+}));
 
-app.put('/api/music/:id', requireLogin, (req, res) => {
+app.put('/api/music/:id', requireLogin, asyncHandler(async (req, res) => {
   const { song, artist, genre } = req.body || {};
   const username = getUsernameFromRequest(req);
 
@@ -144,7 +151,7 @@ app.put('/api/music/:id', requireLogin, (req, res) => {
     return res.status(400).json({ error: 'Song, artist, and genre are required.' });
   }
 
-  const records = getUserPlaylist(username);
+  const records = await getUserPlaylist(username);
   const index = records.findIndex((item) => item.id === Number(req.params.id));
 
   if (index === -1) {
@@ -158,22 +165,22 @@ app.put('/api/music/:id', requireLogin, (req, res) => {
     genre: String(genre).trim(),
   };
 
-  saveUserPlaylist(username, records);
+  await saveUserPlaylist(username, records);
   res.json(records[index]);
-});
+}));
 
-app.delete('/api/music/:id', requireLogin, (req, res) => {
+app.delete('/api/music/:id', requireLogin, asyncHandler(async (req, res) => {
   const username = getUsernameFromRequest(req);
-  const records = getUserPlaylist(username);
+  const records = await getUserPlaylist(username);
   const filtered = records.filter((item) => item.id !== Number(req.params.id));
 
   if (filtered.length === records.length) {
     return res.status(404).json({ error: 'Record not found.' });
   }
 
-  saveUserPlaylist(username, filtered);
+  await saveUserPlaylist(username, filtered);
   res.json({ message: 'Record deleted.' });
-});
+}));
 
 app.get('/api/lookup', async (req, res) => {
   const term = req.query.term;

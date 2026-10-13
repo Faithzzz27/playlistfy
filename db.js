@@ -1,197 +1,164 @@
-const fs = require('fs');
-const path = require('path');
+const mysql = require('mysql2/promise');
 
-const dbFilePath = path.join(__dirname, 'data', 'musicPlaylist.json');
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'rootpass',
+  database: process.env.DB_NAME || 'playlistfy',
+  waitForConnections: true,
+  connectionLimit: 10,
+});
 
-function ensureDatabase() {
-  const directory = path.dirname(dbFilePath);
+async function findUserRow(username) {
+  const name = String(username || '').trim();
+  if (!name) return null;
+  const [rows] = await pool.query(
+    'SELECT id, username, password FROM users WHERE username = ?',
+    [name]
+  );
+  return rows[0] || null;
+}
 
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory, { recursive: true });
+async function loadSongs(userId, listId) {
+  const [rows] = await pool.query(
+    'SELECT song_id AS id, song, artist, genre FROM songs WHERE user_id = ? AND list_id = ? ORDER BY song_id',
+    [userId, listId]
+  );
+  return rows;
+}
+
+async function loadPlaylists(userId) {
+  const [lists] = await pool.query(
+    'SELECT list_id AS id, name FROM playlists WHERE user_id = ? ORDER BY list_id',
+    [userId]
+  );
+  for (const list of lists) {
+    list.songs = await loadSongs(userId, list.id);
   }
+  return lists;
+}
 
-  if (!fs.existsSync(dbFilePath)) {
-    fs.writeFileSync(
-      dbFilePath,
-      JSON.stringify(
-        [
-          {
-            username: 'demo',
-            password: 'demo123',
-            playlist: [],
-          },
-        ],
-        null,
-        2
-      ),
-      'utf8'
+async function insertSongs(conn, userId, listId, songs) {
+  for (let i = 0; i < songs.length; i++) {
+    const s = songs[i] || {};
+    await conn.query(
+      'INSERT INTO songs (user_id, list_id, song_id, song, artist, genre) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, listId, Number(s.id) || i + 1, s.song || '', s.artist || '', s.genre || '']
     );
   }
 }
 
-function readUsers() {
-  ensureDatabase();
-
-  try {
-    const fileData = fs.readFileSync(dbFilePath, 'utf8');
-    const parsedData = JSON.parse(fileData);
-
-    if (!Array.isArray(parsedData)) {
-      return [];
-    }
-
-    if (!parsedData.some((item) => item && typeof item.username === 'string')) {
-      const migratedUsers = [
-        {
-          username: 'demo',
-          password: 'demo123',
-          playlist: parsedData.map((item) => ({
-            id: Number(item.id) || 1,
-            song: item.song || '',
-            artist: item.artist || '',
-            genre: item.genre || '',
-          })),
-        },
-      ];
-
-      writeUsers(migratedUsers);
-      return migratedUsers;
-    }
-
-    return parsedData;
-  } catch (error) {
-    console.error('Error reading database:', error.message);
-    return [];
-  }
+async function getUserByUsername(username) {
+  const row = await findUserRow(username);
+  if (!row) return null;
+  return {
+    username: row.username,
+    password: row.password,
+    playlist: await loadSongs(row.id, 0),
+    playlists: await loadPlaylists(row.id),
+  };
 }
 
-function writeUsers(users) {
-  ensureDatabase();
-  fs.writeFileSync(dbFilePath, JSON.stringify(users, null, 2), 'utf8');
-}
-
-function getUserByUsername(username) {
-  const searchName = String(username || '').trim();
-  if (!searchName) {
-    return null;
-  }
-
-  return readUsers().find((user) => user.username.toLowerCase() === searchName.toLowerCase()) || null;
-}
-
-function createUser(username, password) {
+async function createUser(username, password) {
   const cleanUsername = String(username || '').trim();
   const cleanPassword = String(password || '').trim();
+  if (!cleanUsername || !cleanPassword) return null;
+  if (await findUserRow(cleanUsername)) return null;
 
-  if (!cleanUsername || !cleanPassword) {
-    return null;
-  }
-
-  const users = readUsers();
-
-  if (getUserByUsername(cleanUsername)) {
-    return null;
-  }
-
-  const newUser = {
-    username: cleanUsername,
-    password: cleanPassword,
-    playlist: [],
-  };
-
-  users.push(newUser);
-  writeUsers(users);
-  return newUser;
+  await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [
+    cleanUsername,
+    cleanPassword,
+  ]);
+  return { username: cleanUsername, password: cleanPassword, playlist: [], playlists: [] };
 }
 
-function authenticateUser(username, password) {
-  const user = getUserByUsername(username);
-  if (!user || user.password !== String(password || '').trim()) {
-    return null;
-  }
-
+async function authenticateUser(username, password) {
+  const user = await getUserByUsername(username);
+  if (!user || user.password !== String(password || '').trim()) return null;
   return user;
 }
 
-function getUserPlaylist(username) {
-  const user = getUserByUsername(username);
-  return user ? user.playlist : [];
+async function getUserPlaylist(username) {
+  const row = await findUserRow(username);
+  return row ? loadSongs(row.id, 0) : [];
 }
 
-function getUserPlaylists(username) {
-  const user = getUserByUsername(username);
-
-  if (!user) {
-    return [];
-  }
-
-  if (!Array.isArray(user.playlists)) {
-    user.playlists = [];
-  }
-
-  return user.playlists;
+async function getUserPlaylists(username) {
+  const row = await findUserRow(username);
+  return row ? loadPlaylists(row.id) : [];
 }
 
-function saveUserPlaylist(username, playlist) {
-  const users = readUsers();
-  const index = users.findIndex((user) => user.username.toLowerCase() === String(username || '').trim().toLowerCase());
+async function saveUserPlaylist(username, playlist) {
+  const row = await findUserRow(username);
+  if (!row) return false;
 
-  if (index === -1) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query('DELETE FROM songs WHERE user_id = ? AND list_id = 0', [row.id]);
+    await insertSongs(conn, row.id, 0, Array.isArray(playlist) ? playlist : []);
+    await conn.commit();
+    return true;
+  } catch (error) {
+    await conn.rollback();
+    console.error('saveUserPlaylist error:', error.message);
     return false;
+  } finally {
+    conn.release();
   }
-
-  users[index].playlist = Array.isArray(playlist) ? playlist : [];
-  writeUsers(users);
-  return true;
 }
 
-function saveUserPlaylists(username, playlists) {
-  const users = readUsers();
-  const index = users.findIndex((user) => user.username.toLowerCase() === String(username || '').trim().toLowerCase());
+async function saveUserPlaylists(username, playlists) {
+  const row = await findUserRow(username);
+  if (!row) return false;
 
-  if (index === -1) {
+  const list = Array.isArray(playlists) ? playlists : [];
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query('DELETE FROM songs WHERE user_id = ? AND list_id <> 0', [row.id]);
+    await conn.query('DELETE FROM playlists WHERE user_id = ?', [row.id]);
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i] || {};
+      const listId = Number(p.id) || i + 1;
+      await conn.query(
+        'INSERT INTO playlists (user_id, list_id, name) VALUES (?, ?, ?)',
+        [row.id, listId, p.name || 'Untitled']
+      );
+      await insertSongs(conn, row.id, listId, Array.isArray(p.songs) ? p.songs : []);
+    }
+    await conn.commit();
+    return true;
+  } catch (error) {
+    await conn.rollback();
+    console.error('saveUserPlaylists error:', error.message);
     return false;
+  } finally {
+    conn.release();
   }
-
-  users[index].playlists = Array.isArray(playlists) ? playlists : [];
-  writeUsers(users);
-  return true;
 }
 
-function createPlaylist(username, name) {
-  const cleanUsername = String(username || '').trim();
+async function createPlaylist(username, name) {
   const cleanName = String(name || '').trim();
+  const row = await findUserRow(username);
+  if (!row || !cleanName) return null;
 
-  if (!cleanUsername || !cleanName) {
-    return null;
-  }
+  const [dupes] = await pool.query(
+    'SELECT 1 FROM playlists WHERE user_id = ? AND name = ?',
+    [row.id, cleanName]
+  );
+  if (dupes.length > 0) return null;
 
-  const users = readUsers();
-  const index = users.findIndex((user) => user.username.toLowerCase() === cleanUsername.toLowerCase());
-
-  if (index === -1) {
-    return null;
-  }
-
-  const user = users[index];
-  if (!Array.isArray(user.playlists)) {
-    user.playlists = [];
-  }
-
-  const duplicate = user.playlists.some((playlist) => playlist.name.toLowerCase() === cleanName.toLowerCase());
-  if (duplicate) {
-    return null;
-  }
-
-  const newPlaylist = {
-    id: user.playlists.reduce((maxId, playlist) => Math.max(maxId, Number(playlist.id) || 0), 0) + 1,
-    name: cleanName,
-    songs: [],
-  };
-
-  user.playlists.push(newPlaylist);
-  writeUsers(users);
-  return newPlaylist;
+  const [[{ nextId }]] = await pool.query(
+    'SELECT COALESCE(MAX(list_id), 0) + 1 AS nextId FROM playlists WHERE user_id = ?',
+    [row.id]
+  );
+  await pool.query('INSERT INTO playlists (user_id, list_id, name) VALUES (?, ?, ?)', [
+    row.id,
+    nextId,
+    cleanName,
+  ]);
+  return { id: nextId, name: cleanName, songs: [] };
 }
 
 function getNextId(records) {
@@ -199,8 +166,6 @@ function getNextId(records) {
 }
 
 module.exports = {
-  readUsers,
-  writeUsers,
   createUser,
   authenticateUser,
   getUserByUsername,

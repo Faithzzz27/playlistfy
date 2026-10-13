@@ -263,8 +263,47 @@ function bindUtilityIcons() {
   }
 
   if (addButton) {
-    addButton.addEventListener('click', () => {
-      showStatusToast('New playlist created');
+    addButton.addEventListener('click', async () => {
+      if (!requireLogin()) {
+        return;
+      }
+
+      const nextName = window.prompt('Name your playlist', 'New Playlist');
+      const trimmedName = nextName ? nextName.trim() : '';
+
+      if (!trimmedName) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/playlists', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ name: trimmedName }),
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Could not create the playlist.');
+        }
+
+        await loadPlaylistLibrary();
+        const newPlaylist = Array.from(document.querySelectorAll('.library-item')).find(
+          (item) => item.dataset.playlistId === String(result.id)
+        );
+
+        if (newPlaylist) {
+          document.querySelectorAll('.library-item').forEach((item) => {
+            item.classList.remove('selected-playlist');
+          });
+          newPlaylist.classList.add('selected-playlist');
+          syncSelectedPlaylistMeta(result.name, 'Playlist • 0 tracks');
+        }
+
+        showStatusToast('Playlist created');
+      } catch (error) {
+        showStatusToast(error.message);
+      }
     });
   }
 

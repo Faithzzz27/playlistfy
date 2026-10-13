@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Playlistify</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="spotify-theme dashboard-page">
+    <div class="spotify-desktop">
+      <aside class="sidebar">
+        <div class="nav-cluster">
+          <button id="moreOptionsBtn" class="icon-btn tiny" aria-label="More options">•••</button>
+          <button class="icon-btn tiny" aria-label="Go back">‹</button>
+          <button class="icon-btn tiny" aria-label="Go forward">›</button>
+        </div>
+
+        <div id="moreOptionsMenu" class="context-menu hidden" role="menu" aria-label="More options menu">
+          <button class="menu-item" data-action="add-to-queue">Add to queue</button>
+          <button class="menu-item" data-action="start-jam">Start a Jam</button>
+          <button class="menu-item" data-action="remove-from-profile">Remove from profile</button>
+          <button class="menu-item" data-action="edit-details">Edit details</button>
+          <button class="menu-item" data-action="create-playlist">Create playlist</button>
+          <button class="menu-item" data-action="make-private">Make private</button>
+          <button class="menu-item" data-action="invite-collaborators">Invite collaborators</button>
+          <button class="menu-item" data-action="delete-playlist">Delete</button>
+        </div>
+
+        <div class="library-panel">
+          <div class="library-header">
+            <h2>Your Library</h2>
+            <div class="header-actions">
+              <button class="icon-btn small" aria-label="Add">＋</button>
+              <button class="icon-btn small" aria-label="Browse">⌃</button>
+            </div>
+          </div>
+
+          <div class="chip-row">
+            <button class="chip active">Playlists</button>
+            <button class="chip">Album</button>
+          </div>
+
+          <div class="library-list">
+            <div class="library-item" draggable="true" data-draggable="library-item" data-playlist-name="My Playlist" data-playlist-meta="Playlist • Your music">
+              <span class="mini-icon purple">♪</span>
+              <div>
+                <strong>My Playlist</strong>
+                <small>Playlist • Your music</small>
+              </div>
+              <button class="playlist-menu-btn" aria-label="More options for My Playlist">•••</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-shell">
+        <header class="main-topbar">
+          <div class="search-shell">
+            <span class="search-icon">⌕</span>
+            <input id="searchTerm" type="text" placeholder="What do you want to play?" />
+            <button id="searchBtn" class="search-btn" type="button" aria-label="Search songs">Search</button>
+          </div>
+
+          <div class="header-icons">
+            <button class="icon-btn small" aria-label="Saved songs">⍟</button>
+            <button class="icon-btn small" aria-label="Notifications">🔔</button>
+            <button id="avatarButton" class="avatar-btn" aria-label="User menu">M</button>
+            <button class="icon-btn small" aria-label="Minimize">—</button>
+            <button class="icon-btn small" aria-label="Close">□</button>
+            <button class="icon-btn small" aria-label="Exit">×</button>
+          </div>
+        </header>
+
+        <div class="content-layout">
+          <section class="center-panel">
+            <div id="selectedPlaylistBanner" class="selected-playlist-banner">
+              <div class="selected-playlist-cover"></div>
+              <div class="selected-playlist-copy">
+                <small>Playlist</small>
+                <h2 id="selectedPlaylistTitle">My Playlist</h2>
+                <p id="selectedPlaylistMeta">Your personalized mix</p>
+              </div>
+            </div>
+
+            <div class="pill-row">
+              <button class="tab active">All</button>
+              <button class="tab">Music Videos</button>
+              <button class="tab">Music</button>
+            </div>
+
+            <div id="searchResults" class="search-results"></div>
+
+            <div class="music-form-panel">
+              <form id="musicForm" class="music-form">
+                <div class="field-grid">
+                  <label>
+                    <span>Song</span>
+                    <input id="song" type="text" name="song" placeholder="Enter a song title" required />
+                  </label>
+                  <label>
+                    <span>Artist</span>
+                    <input id="artist" type="text" name="artist" placeholder="Artist name" required />
+                  </label>
+                  <label>
+                    <span>Genre</span>
+                    <input id="genre" type="text" name="genre" placeholder="Genre" required />
+                  </label>
+                </div>
+                <div class="button-row">
+                  <button type="submit" class="primary-btn">Add song</button>
+                </div>
+              </form>
+            </div>
+
+            <div id="playlistList" class="playlist-grid"></div>
+
+            <div class="featured-section">
+              <div class="section-head">
+                <h3>Made For</h3>
+                <button class="text-link">Show all</button>
+              </div>
+
+              <div class="featured-grid">
+                <div class="feature-card dark-card">
+                  <div class="feature-art art-one"></div>
+                  <div class="feature-info">
+                    <span>Markyuu</span>
+                  </div>
+                </div>
+                <div class="feature-card warm-card">
+                  <div class="feature-art art-two"></div>
+                  <div class="feature-info">
+                    <span>Daily Mix</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="right-rail">
+            <div class="album-panel" draggable="true" data-draggable="right-panel">
+              <div class="album-art wide-art"></div>
+              <div class="album-meta">
+                <h3>This Is Taylor Swift</h3>
+                <p>Artist</p>
+              </div>
+            </div>
+
+            <div class="related-panel" draggable="true" data-draggable="right-panel">
+              <h3>Related music videos</h3>
+              <div class="mini-video"></div>
+            </div>
+          </aside>
+        </div>
+
+        <footer id="playerBar" class="player-bar">
+          <div class="player-track">
+            <div class="mini-art"></div>
+            <div class="track-details">
+              <strong>My Playlist</strong>
+              <span>Playlist</span>
+            </div>
+          </div>
+
+          <div class="player-controls">
+            <div class="controls-row">
+              <button class="ctrl-btn">↺</button>
+              <button class="ctrl-btn">⏮</button>
+              <button class="ctrl-btn play-btn">▶</button>
+              <button class="ctrl-btn">⏭</button>
+              <button class="ctrl-btn">↻</button>
+            </div>
+            <div class="timeline">
+              <span>0:06</span>
+              <div class="progress-bar"><span class="progress"></span></div>
+              <span>3:33</span>
+            </div>
+          </div>
+
+          <div class="player-actions">
+            <button class="ctrl-btn small">♡</button>
+            <button class="ctrl-btn small">◉</button>
+          </div>
+        </footer>
+
+        <div id="expandedPlayer" class="expanded-player hidden" aria-live="polite">
+          <div class="expanded-player-header">
+            <span>Now Playing</span>
+            <button id="playerCollapseBtn" class="close-player-btn" aria-label="Collapse player">×</button>
+          </div>
+          <div class="expanded-player-art"></div>
+          <div class="expanded-player-meta">
+            <h3>My Playlist</h3>
+            <p>Playlist</p>
+          </div>
+          <div class="expanded-player-controls">
+            <button class="ctrl-btn">↺</button>
+            <button class="ctrl-btn">⏮</button>
+            <button class="ctrl-btn play-btn expanded-play">▶</button>
+            <button class="ctrl-btn">⏭</button>
+            <button class="ctrl-btn">↻</button>
+          </div>
+          <div class="expanded-timeline">
+            <span>0:06</span>
+            <div class="progress-bar"><span class="progress"></span></div>
+            <span>3:33</span>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="accountMenu" class="account-menu hidden">
+      <div class="menu-section">
+        <button class="menu-item">Profile</button>
+        <button class="menu-item">Support</button>
+        <button class="menu-item">Private session</button>
+        <button class="menu-item">Settings</button>
+        <button id="logoutBtn" class="menu-item danger">Log out</button>
+      </div>
+      <div class="menu-section promo">
+        <div class="promo-check">✓</div>
+        <p>You’re all caught up</p>
+        <span>Watch this space for news on your followers, playlists, events and more.</span>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

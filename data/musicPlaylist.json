@@ -1,0 +1,80 @@
+[
+  {
+    "username": "demo",
+    "password": "demo123",
+    "playlist": [
+      {
+        "id": 1,
+        "song": "Starlight",
+        "artist": "Muse",
+        "genre": "Rock"
+      },
+      {
+        "id": 2,
+        "song": "Starlight",
+        "artist": "Muse",
+        "genre": "Rock"
+      },
+      {
+        "id": 3,
+        "song": "Starlight",
+        "artist": "Muse",
+        "genre": "Rock"
+      }
+    ]
+  },
+  {
+    "username": "spotifyfan",
+    "password": "music123",
+    "playlist": [
+      {
+        "id": 1,
+        "song": "Midnight City",
+        "artist": "M83",
+        "genre": "Synthpop"
+      }
+    ]
+  },
+  {
+    "username": "verifyuser_08081cb4",
+    "password": "demo123",
+    "playlist": [
+      {
+        "id": 1,
+        "song": "Midnight City",
+        "artist": "M83",
+        "genre": "Synthwave"
+      }
+    ]
+  },
+  {
+    "username": "NFGXFGJ",
+    "password": "FGJFGJH",
+    "playlist": []
+  },
+  {
+    "username": "HKP';JL",
+    "password": "JK'KLKJ",
+    "playlist": []
+  },
+  {
+    "username": "demouser",
+    "password": "demo123",
+    "playlist": []
+  },
+  {
+    "username": "wqhGD",
+    "password": "LKSCKJHFKAS",
+    "playlist": []
+  },
+  {
+    "username": "HGUUGG",
+    "password": "JGUUGUYGYG",
+    "playlist": []
+  },
+  {
+    "username": "faith",
+    "password": "sy",
+    "playlist": []
+  }
+]

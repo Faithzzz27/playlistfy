@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit Song</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container narrow">
+      <h1>Edit Song</h1>
+
+      <section class="panel">
+        <form id="editForm">
+          <div class="form-row">
+            <label for="song">Song</label>
+            <input type="text" id="song" name="song" required />
+          </div>
+
+          <div class="form-row">
+            <label for="artist">Artist</label>
+            <input type="text" id="artist" name="artist" required />
+          </div>
+
+          <div class="form-row">
+            <label for="genre">Genre</label>
+            <input type="text" id="genre" name="genre" required />
+          </div>
+
+          <div class="button-row">
+            <button type="submit" class="primary-btn">Save Changes</button>
+            <a href="/" class="secondary-link">Back to Playlist</a>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

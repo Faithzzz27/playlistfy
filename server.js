@@ -4,7 +4,9 @@ const {
   createUser,
   authenticateUser,
   getUserPlaylist,
+  getUserPlaylists,
   saveUserPlaylist,
+  createPlaylist,
   getNextId,
 } = require('./db');
 
@@ -76,6 +78,29 @@ app.post('/api/register', (req, res) => {
 app.get('/api/music', requireLogin, (req, res) => {
   const username = getUsernameFromRequest(req);
   res.json(getUserPlaylist(username));
+});
+
+app.get('/api/playlists', requireLogin, (req, res) => {
+  const username = getUsernameFromRequest(req);
+  const playlists = getUserPlaylists(username);
+  res.json(playlists);
+});
+
+app.post('/api/playlists', requireLogin, (req, res) => {
+  const { name } = req.body || {};
+  const username = getUsernameFromRequest(req);
+
+  if (!name || String(name).trim() === '') {
+    return res.status(400).json({ error: 'Playlist name is required.' });
+  }
+
+  const newPlaylist = createPlaylist(username, name);
+
+  if (!newPlaylist) {
+    return res.status(409).json({ error: 'Playlist name already exists.' });
+  }
+
+  res.status(201).json(newPlaylist);
 });
 
 app.post('/api/music', requireLogin, (req, res) => {
@@ -157,27 +182,53 @@ app.get('/api/lookup', async (req, res) => {
     return res.status(400).json({ error: 'Please enter a song or artist name.' });
   }
 
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=10`;
+  const sources = [
+    {
+      name: 'AudioDB',
+      url: `https://www.theaudiodb.com/api/v1/json/2/searchtrack.php?t=${encodeURIComponent(term)}`,
+      parse: (data) => {
+        const tracks = Array.isArray(data?.track) ? data.track : [];
+        return tracks.slice(0, 10).map((item) => ({
+          song: item.strTrack || 'Unknown track',
+          artist: item.strArtist || 'Unknown artist',
+          genre: item.strGenre || 'Unknown genre',
+        }));
+      },
+    },
+    {
+      name: 'iTunes',
+      url: `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=10`,
+      parse: (data) => {
+        const tracks = Array.isArray(data?.results) ? data.results : [];
+        return tracks.slice(0, 10).map((item) => ({
+          song: item.trackName || 'Unknown track',
+          artist: item.artistName || 'Unknown artist',
+          genre: item.primaryGenreName || 'Unknown genre',
+        }));
+      },
+    },
+  ];
 
-  try {
-    const response = await fetch(url);
+  for (const source of sources) {
+    try {
+      const response = await fetch(source.url);
 
-    if (!response.ok) {
-      throw new Error(`iTunes request failed with status ${response.status}`);
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = await response.json();
+      const results = source.parse(data);
+
+      if (results.length) {
+        return res.json(results);
+      }
+    } catch (error) {
+      console.error(`${source.name} lookup failed:`, error.message);
     }
-
-    const data = await response.json();
-    const results = (data.results || []).slice(0, 10).map((item) => ({
-      song: item.trackName || 'Unknown track',
-      artist: item.artistName || 'Unknown artist',
-      genre: item.primaryGenreName || 'Unknown genre',
-    }));
-
-    res.json(results);
-  } catch (error) {
-    console.error('iTunes lookup failed:', error);
-    res.status(502).json({ error: 'Could not fetch results from iTunes.' });
   }
+
+  return res.status(502).json({ error: 'Could not fetch music results from the available free APIs.' });
 });
 
 app.listen(port, () => {

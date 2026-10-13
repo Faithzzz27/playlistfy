@@ -75,6 +75,24 @@
   {
     "username": "faith",
     "password": "sy",
+    "playlist": [
+      {
+        "id": 1,
+        "song": "hhj",
+        "artist": "hggh",
+        "genre": "tyry"
+      },
+      {
+        "id": 2,
+        "song": "Saturn",
+        "artist": "SZA",
+        "genre": "R&B/Soul"
+      }
+    ]
+  },
+  {
+    "username": "apple",
+    "password": "secret123",
     "playlist": []
   }
 ]

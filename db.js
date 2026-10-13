@@ -118,6 +118,20 @@ function getUserPlaylist(username) {
   return user ? user.playlist : [];
 }
 
+function getUserPlaylists(username) {
+  const user = getUserByUsername(username);
+
+  if (!user) {
+    return [];
+  }
+
+  if (!Array.isArray(user.playlists)) {
+    user.playlists = [];
+  }
+
+  return user.playlists;
+}
+
 function saveUserPlaylist(username, playlist) {
   const users = readUsers();
   const index = users.findIndex((user) => user.username.toLowerCase() === String(username || '').trim().toLowerCase());
@@ -131,6 +145,55 @@ function saveUserPlaylist(username, playlist) {
   return true;
 }
 
+function saveUserPlaylists(username, playlists) {
+  const users = readUsers();
+  const index = users.findIndex((user) => user.username.toLowerCase() === String(username || '').trim().toLowerCase());
+
+  if (index === -1) {
+    return false;
+  }
+
+  users[index].playlists = Array.isArray(playlists) ? playlists : [];
+  writeUsers(users);
+  return true;
+}
+
+function createPlaylist(username, name) {
+  const cleanUsername = String(username || '').trim();
+  const cleanName = String(name || '').trim();
+
+  if (!cleanUsername || !cleanName) {
+    return null;
+  }
+
+  const users = readUsers();
+  const index = users.findIndex((user) => user.username.toLowerCase() === cleanUsername.toLowerCase());
+
+  if (index === -1) {
+    return null;
+  }
+
+  const user = users[index];
+  if (!Array.isArray(user.playlists)) {
+    user.playlists = [];
+  }
+
+  const duplicate = user.playlists.some((playlist) => playlist.name.toLowerCase() === cleanName.toLowerCase());
+  if (duplicate) {
+    return null;
+  }
+
+  const newPlaylist = {
+    id: user.playlists.reduce((maxId, playlist) => Math.max(maxId, Number(playlist.id) || 0), 0) + 1,
+    name: cleanName,
+    songs: [],
+  };
+
+  user.playlists.push(newPlaylist);
+  writeUsers(users);
+  return newPlaylist;
+}
+
 function getNextId(records) {
   return records.reduce((maxId, record) => Math.max(maxId, Number(record.id) || 0), 0) + 1;
 }
@@ -142,6 +205,9 @@ module.exports = {
   authenticateUser,
   getUserByUsername,
   getUserPlaylist,
+  getUserPlaylists,
   saveUserPlaylist,
+  saveUserPlaylists,
+  createPlaylist,
   getNextId,
 };

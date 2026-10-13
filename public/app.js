@@ -175,39 +175,61 @@ function syncSelectedPlaylistMeta(title, meta) {
   }
 }
 
-function refreshPlaylistLibrary() {
+async function loadPlaylistLibrary() {
   const libraryList = document.querySelector('.library-list');
-  const allItems = Array.from(document.querySelectorAll('.library-item'));
 
-  if (!libraryList) {
+  if (!libraryList || !currentUsername()) {
     return;
   }
 
-  libraryList.querySelectorAll('.library-item').forEach((item) => item.classList.remove('selected-playlist'));
+  try {
+    const response = await fetch('/api/playlists', {
+      headers: authHeaders(),
+    });
 
-  if (!allItems.length) {
-    libraryList.innerHTML = `
-      <div class="library-item selected-playlist" data-draggable="library-item" data-playlist-name="My Playlist" data-playlist-meta="Playlist • Your music">
-        <span class="mini-icon purple">♪</span>
-        <div>
-          <strong>My Playlist</strong>
-          <small>Playlist • Your music</small>
-        </div>
-        <button class="playlist-menu-btn" aria-label="More options for My Playlist">•••</button>
-      </div>
-    `;
+    if (response.status === 401) {
+      localStorage.removeItem('musicUsername');
+      window.location.href = '/';
+      return;
+    }
+
+    const playlists = await response.json();
+    const defaultPlaylist = {
+      id: 'default',
+      name: 'My Playlist',
+      songs: [],
+    };
+    const allPlaylists = [defaultPlaylist, ...(Array.isArray(playlists) ? playlists : [])];
+
+    libraryList.innerHTML = allPlaylists
+      .map(
+        (playlist) => `
+          <div class="library-item" draggable="true" data-draggable="library-item" data-playlist-id="${escapeHtml(String(playlist.id))}" data-playlist-name="${escapeHtml(playlist.name)}" data-playlist-meta="Playlist • ${playlist.songs?.length || 0} tracks">
+            <span class="mini-icon purple">♪</span>
+            <div>
+              <strong>${escapeHtml(playlist.name)}</strong>
+              <small>Playlist • ${playlist.songs?.length || 0} tracks</small>
+            </div>
+            <button class="playlist-menu-btn" aria-label="More options for ${escapeHtml(playlist.name)}">•••</button>
+          </div>
+        `
+      )
+      .join('');
+
+    const selected = getSelectedPlaylistElement() || libraryList.querySelector('.library-item');
+    if (selected) {
+      selected.classList.add('selected-playlist');
+      syncSelectedPlaylistMeta(selected.dataset.playlistName || 'My Playlist', selected.dataset.playlistMeta || 'Playlist • Your music');
+    }
+
     initializeCustomDraggableLayout();
-    syncSelectedPlaylistMeta('My Playlist', 'Playlist • Your music');
-    return;
+  } catch (error) {
+    console.error('Load playlist library error:', error);
   }
+}
 
-  const selected = getSelectedPlaylistElement() || allItems[0];
-  if (selected) {
-    selected.classList.add('selected-playlist');
-    const title = selected.dataset.playlistName || 'My Playlist';
-    const meta = selected.dataset.playlistMeta || 'Playlist • Your music';
-    syncSelectedPlaylistMeta(title, meta);
-  }
+function refreshPlaylistLibrary() {
+  loadPlaylistLibrary();
 }
 
 function bindUtilityIcons() {
@@ -421,7 +443,7 @@ function bindPlaylistMenuButtons() {
 bindPlaylistMenuButtons();
 
 if (moreOptionsMenu) {
-  moreOptionsMenu.addEventListener('click', (event) => {
+  moreOptionsMenu.addEventListener('click', async (event) => {
     const button = event.target.closest('.menu-item');
 
     if (!button) {
@@ -433,6 +455,28 @@ if (moreOptionsMenu) {
     const selectedTrackRow = document.querySelector('.playlist-track-row.active-track');
     const selectedTitle = selectedItem?.dataset.playlistName || selectedTrackRow?.dataset.trackName || 'My Playlist';
     const selectedMeta = selectedItem?.dataset.playlistMeta || selectedTrackRow?.dataset.trackArtist || 'Playlist • Your music';
+
+    if (action === 'edit-song' && selectedTrackRow?.dataset.trackId) {
+      window.location.href = `/edit.html?id=${encodeURIComponent(selectedTrackRow.dataset.trackId)}`;
+      return;
+    }
+
+    if (action === 'delete-song' && selectedTrackRow?.dataset.trackId) {
+      const recordId = Number(selectedTrackRow.dataset.trackId);
+      const trackName = selectedTrackRow.dataset.trackName || 'this song';
+
+      if (!window.confirm(`Delete "${trackName}" from your playlist?`)) {
+        toggleMoreOptionsMenu(false);
+        return;
+      }
+
+      try {
+        await deleteSongFromPlaylist(recordId);
+      } catch (error) {
+        console.error('Delete song failed:', error);
+      }
+      return;
+    }
 
     if (action === 'add-to-queue') {
       const currentSong = selectedTrackRow?.dataset.trackName || document.querySelector('.track-details strong')?.textContent || selectedTitle;
@@ -469,30 +513,32 @@ if (moreOptionsMenu) {
 
     if (action === 'create-playlist') {
       const nextName = window.prompt('Name your playlist', 'New Playlist');
-      if (!nextName) {
+      const trimmedName = nextName ? nextName.trim() : '';
+
+      if (!trimmedName) {
         toggleMoreOptionsMenu(false);
         return;
       }
 
-      const libraryList = document.querySelector('.library-list');
-      const newItem = document.createElement('div');
-      newItem.className = 'library-item selected-playlist';
-      newItem.setAttribute('draggable', 'true');
-      newItem.dataset.draggable = 'library-item';
-      newItem.dataset.playlistName = nextName.trim();
-      newItem.dataset.playlistMeta = 'Playlist • Your music';
-      newItem.innerHTML = `
-        <span class="mini-icon purple">♪</span>
-        <div>
-          <strong>${escapeHtml(nextName.trim())}</strong>
-          <small>Playlist • Your music</small>
-        </div>
-        <button class="playlist-menu-btn" aria-label="More options for ${escapeHtml(nextName.trim())}">•••</button>
-      `;
-      libraryList.appendChild(newItem);
-      initializeCustomDraggableLayout();
-      syncSelectedPlaylistMeta(nextName.trim(), 'Playlist • Your music');
-      showStatusToast('Playlist created');
+      try {
+        const response = await fetch('/api/playlists', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ name: trimmedName }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Could not create the playlist.');
+        }
+
+        await loadPlaylistLibrary();
+        syncSelectedPlaylistMeta(result.name, 'Playlist • 0 tracks');
+        showStatusToast('Playlist created');
+      } catch (error) {
+        showStatusToast(error.message);
+      }
     }
 
     if (action === 'make-private') {
@@ -651,7 +697,7 @@ function renderPlaylistSelection(title, meta, tracks) {
     ${tracks
       .map(
         (track, index) => `
-          <div class="playlist-track-row" draggable="true" data-draggable="playlist-track-row" data-track-name="${escapeHtml(track.song)}" data-track-artist="${escapeHtml(track.artist)}" data-track-duration="${escapeHtml(track.duration || '3:30')}">
+          <div class="playlist-track-row" draggable="true" data-draggable="playlist-track-row" data-track-id="${escapeHtml(track.id)}" data-track-name="${escapeHtml(track.song)}" data-track-artist="${escapeHtml(track.artist)}" data-track-duration="${escapeHtml(track.duration || '3:30')}">
             <span class="track-number">${index + 1}</span>
             <div class="track-main">
               <div class="track-art" style="background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(66,123,255,0.9));"></div>
@@ -829,6 +875,61 @@ async function addSongToPlaylist(song, artist, genre) {
   }
 }
 
+async function editSongInPlaylist(id, song, artist, genre) {
+  if (!requireLogin()) {
+    return;
+  }
+
+  const payload = { song, artist, genre };
+
+  try {
+    const response = await fetch(`/api/music/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not update the song.');
+    }
+
+    showStatusToast(`${song} updated`);
+    await loadPlaylist();
+    return result;
+  } catch (error) {
+    showStatusToast(error.message);
+    throw error;
+  }
+}
+
+async function deleteSongFromPlaylist(id) {
+  if (!requireLogin()) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/music/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not delete the song.');
+    }
+
+    showStatusToast('Song deleted');
+    await loadPlaylist();
+    return result;
+  } catch (error) {
+    showStatusToast(error.message);
+    throw error;
+  }
+}
+
 if (musicForm) {
   musicForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -928,6 +1029,63 @@ function decodeHtml(value) {
   return textArea.value;
 }
 
+if (editForm) {
+  const params = new URLSearchParams(window.location.search);
+  const recordId = Number(params.get('id'));
+
+  if (!recordId || Number.isNaN(recordId)) {
+    showStatusToast('No song selected for editing.');
+    window.location.href = '/index.html';
+  } else {
+    async function loadTrackForEditing() {
+      try {
+        const response = await fetch(`/api/music/${recordId}`, {
+          headers: authHeaders(),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Song could not be loaded.');
+        }
+
+        const songField = document.getElementById('song');
+        const artistField = document.getElementById('artist');
+        const genreField = document.getElementById('genre');
+
+        if (songField) songField.value = result.song || '';
+        if (artistField) artistField.value = result.artist || '';
+        if (genreField) genreField.value = result.genre || '';
+      } catch (error) {
+        console.error('Load track for editing failed:', error);
+        showStatusToast(error.message);
+      }
+    }
+
+    editForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const song = document.getElementById('song')?.value.trim();
+      const artist = document.getElementById('artist')?.value.trim();
+      const genre = document.getElementById('genre')?.value.trim();
+
+      if (!song || !artist || !genre) {
+        showStatusToast('Please fill in all song fields.');
+        return;
+      }
+
+      try {
+        await editSongInPlaylist(recordId, song, artist, genre);
+        window.location.href = '/index.html';
+      } catch (error) {
+        console.error('Edit song failed:', error);
+      }
+    });
+
+    loadTrackForEditing();
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const isLoginPage = window.location.pathname === '/' || window.location.pathname.endsWith('/login.html');
 
@@ -946,5 +1104,6 @@ window.addEventListener('DOMContentLoaded', () => {
   updateAuthUI();
   bindUtilityIcons();
   initializeCustomDraggableLayout();
+  loadPlaylistLibrary();
   loadPlaylist();
 });

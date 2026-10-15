@@ -1,30 +1,15 @@
 services:
-  db:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: playlistfy
-    volumes:
-      - dbdata:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   app:
     build: .
     ports:
       - "3000:3000"
+    volumes:
+      # Live-mount project root so all file edits on host immediately update inside container
+      - .:/app
+      # Keep container node_modules isolated
+      - /app/node_modules
     environment:
-      DB_HOST: db
-      DB_USER: root
-      DB_PASSWORD: rootpass
-      DB_NAME: playlistfy
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  dbdata:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    restart: unless-stopped
+    command: nodemon -L server.js

@@ -1,0 +1,15 @@
+{
+  "watch": [
+    "server.js",
+    "db.js"
+  ],
+  "ignore": [
+    "data/**",
+    "public/**",
+    "node_modules/**",
+    ".git/**"
+  ],
+  "ext": "js",
+  "legacyWatch": true,
+  "delay": 500
+}

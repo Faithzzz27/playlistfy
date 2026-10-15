@@ -3,229 +3,607 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Playlistify</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Playlistfy - Your Music Soundtrack</title>
+    <link rel="stylesheet" href="styles.css?v=10" />
+    <script src="lucide.min.js"></script>
   </head>
   <body class="spotify-theme dashboard-page">
     <div class="spotify-desktop">
+      <!-- Left Sidebar Navigation -->
       <aside class="sidebar">
         <div class="nav-cluster">
-          <button id="moreOptionsBtn" class="icon-btn tiny" aria-label="More options">•••</button>
-          <button class="icon-btn tiny" aria-label="Go back">‹</button>
-          <button class="icon-btn tiny" aria-label="Go forward">›</button>
+          <button id="moreOptionsBtn" class="icon-btn tiny" aria-label="More options" title="More options">
+            <i data-lucide="more-horizontal"></i>
+          </button>
+          <button id="navBackBtn" class="icon-btn tiny" aria-label="Previous playlist" title="Previous playlist">
+            <i data-lucide="chevron-left"></i>
+          </button>
+          <button id="navForwardBtn" class="icon-btn tiny" aria-label="Next playlist" title="Next playlist">
+            <i data-lucide="chevron-right"></i>
+          </button>
         </div>
 
+        <!-- Floating Context Menu -->
         <div id="moreOptionsMenu" class="context-menu hidden" role="menu" aria-label="More options menu">
-          <button class="menu-item" data-action="add-to-queue">Add to queue</button>
-          <button class="menu-item" data-action="start-jam">Start a Jam</button>
-          <button class="menu-item" data-action="remove-from-profile">Remove from profile</button>
-          <button class="menu-item" data-action="edit-details">Edit details</button>
-          <button class="menu-item" data-action="edit-song">Edit song</button>
-          <button class="menu-item" data-action="create-playlist">Create playlist</button>
-          <button class="menu-item" data-action="make-private">Make private</button>
-          <button class="menu-item" data-action="invite-collaborators">Invite collaborators</button>
-          <button class="menu-item" data-action="delete-song">Delete song</button>
-          <button class="menu-item" data-action="delete-playlist">Delete</button>
+          <button class="menu-item" data-action="add-to-queue">
+            <i data-lucide="list-plus"></i> Add to queue
+          </button>
+          <button class="menu-item" data-action="start-jam">
+            <i data-lucide="radio"></i> Start a Jam
+          </button>
+          <button class="menu-item" data-action="edit-details">
+            <i data-lucide="pencil"></i> Rename playlist
+          </button>
+          <button class="menu-item" data-action="edit-song">
+            <i data-lucide="edit-3"></i> Edit selected song
+          </button>
+          <button class="menu-item" data-action="create-playlist">
+            <i data-lucide="folder-plus"></i> Create playlist
+          </button>
+          <button class="menu-item" data-action="make-private">
+            <i data-lucide="lock"></i> Toggle private
+          </button>
+          <button class="menu-item" data-action="invite-collaborators">
+            <i data-lucide="user-plus"></i> Invite collaborators
+          </button>
+          <button class="menu-item danger" data-action="delete-song">
+            <i data-lucide="trash-2"></i> Delete song
+          </button>
+          <button class="menu-item danger" data-action="delete-playlist">
+            <i data-lucide="trash"></i> Delete playlist
+          </button>
         </div>
 
+        <!-- Sidebar Primary Navigation -->
+        <nav class="sidebar-nav">
+          <button id="sidebarHomeBtn" class="sidebar-nav-link active" title="Go to Home">
+            <i data-lucide="home"></i> <span>Home</span>
+          </button>
+          <button id="sidebarSearchBtn" class="sidebar-nav-link" title="Search iTunes Catalog">
+            <i data-lucide="search"></i> <span>Search</span>
+          </button>
+        </nav>
+
+        <!-- Library Sidebar Panel -->
         <div class="library-panel">
           <div class="library-header">
             <h2>Your Library</h2>
             <div class="header-actions">
-              <button class="icon-btn small" aria-label="Add">＋</button>
-              <button class="icon-btn small" aria-label="Browse">⌃</button>
+              <button id="addPlaylistBtn" class="icon-btn small" aria-label="Add playlist" title="Create Playlist">
+                <i data-lucide="plus"></i>
+              </button>
+              <button id="browseBtn" class="icon-btn small" aria-label="Browse / Search" title="Search iTunes">
+                <i data-lucide="compass"></i>
+              </button>
             </div>
           </div>
 
           <div class="chip-row">
-            <button class="chip active">Playlists</button>
-            <button class="chip">Album</button>
+            <button class="chip active" data-filter="all">
+              <i data-lucide="list-music" style="width: 14px; height: 14px; margin-right: 6px;"></i> Playlists
+            </button>
+            <button class="chip" data-filter="liked">
+              <i data-lucide="heart" style="width: 14px; height: 14px; margin-right: 6px;"></i> Favorites
+            </button>
           </div>
 
           <div class="library-list">
-            <div class="library-item" draggable="true" data-draggable="library-item" data-playlist-name="My Playlist" data-playlist-meta="Playlist • Your music">
-              <span class="mini-icon purple">♪</span>
-              <div>
-                <strong>My Playlist</strong>
-                <small>Playlist • Your music</small>
-              </div>
-              <button class="playlist-menu-btn" aria-label="More options for My Playlist">•••</button>
-            </div>
+            <!-- Dynamically populated from API -->
           </div>
         </div>
       </aside>
 
+      <!-- Main Shell Area -->
       <main class="main-shell">
+        <!-- Top Navigation Bar -->
         <header class="main-topbar">
           <div class="search-shell">
-            <span class="search-icon">⌕</span>
-            <input id="searchTerm" type="text" placeholder="What do you want to play?" />
-            <button id="searchBtn" class="search-btn" type="button" aria-label="Search songs">Search</button>
+            <i data-lucide="search" class="search-icon"></i>
+            <input
+              id="searchTerm"
+              type="search"
+              placeholder="What do you want to listen to?"
+              autocomplete="off"
+              spellcheck="false"
+              enterkeyhint="search"
+            />
+            <button id="searchClearBtn" class="search-clear-btn hidden" type="button" aria-label="Clear search" title="Clear search">
+              <i data-lucide="x"></i>
+            </button>
+            <div id="searchSpinner" class="search-spinner hidden" aria-label="Searching iTunes..."></div>
           </div>
 
           <div class="header-icons">
-            <button class="icon-btn small" aria-label="Saved songs">⍟</button>
-            <button class="icon-btn small" aria-label="Notifications">🔔</button>
-            <button id="avatarButton" class="avatar-btn" aria-label="User menu">M</button>
-            <button class="icon-btn small" aria-label="Minimize">—</button>
-            <button class="icon-btn small" aria-label="Close">□</button>
-            <button class="icon-btn small" aria-label="Exit">×</button>
+            <button id="savedSongsBtn" class="icon-btn small" aria-label="Saved songs" title="Favorites Filter">
+              <i data-lucide="heart"></i>
+            </button>
+            <button id="notificationBtn" class="icon-btn small" aria-label="Notifications" title="Recent Activity">
+              <i data-lucide="bell"></i>
+            </button>
+            <button id="avatarButton" class="avatar-btn" aria-label="User menu" title="Account Menu">D</button>
+            <button id="minimizeBtn" class="icon-btn small" aria-label="Minimize" title="Toggle Compact View">
+              <i data-lucide="minus"></i>
+            </button>
+            <button id="closeBtn" class="icon-btn small" aria-label="Toggle Fullscreen" title="Toggle Sidebar">
+              <i data-lucide="layout"></i>
+            </button>
+            <button id="exitBtn" class="icon-btn small" aria-label="Exit" title="Sign Out">
+              <i data-lucide="log-out"></i>
+            </button>
           </div>
         </header>
 
+        <!-- Main Content Area -->
         <div class="content-layout">
           <section class="center-panel">
-            <div id="selectedPlaylistBanner" class="selected-playlist-banner">
-              <div class="selected-playlist-cover"></div>
-              <div class="selected-playlist-copy">
-                <small>Playlist</small>
-                <h2 id="selectedPlaylistTitle">My Playlist</h2>
-                <p id="selectedPlaylistMeta">Your personalized mix</p>
-              </div>
-            </div>
-
-            <div class="pill-row">
-              <button class="tab active">All</button>
-              <button class="tab">Music Videos</button>
-              <button class="tab">Music</button>
-            </div>
-
-            <div id="searchResults" class="search-results"></div>
-
-            <div class="music-form-panel">
-              <form id="musicForm" class="music-form">
-                <div class="field-grid">
-                  <label>
-                    <span>Song</span>
-                    <input id="song" type="text" name="song" placeholder="Enter a song title" required />
-                  </label>
-                  <label>
-                    <span>Artist</span>
-                    <input id="artist" type="text" name="artist" placeholder="Artist name" required />
-                  </label>
-                  <label>
-                    <span>Genre</span>
-                    <input id="genre" type="text" name="genre" placeholder="Genre" required />
-                  </label>
+            <!-- VIEW 1: HOME VIEW -->
+            <div id="homeView" class="home-view">
+              <!-- Home Welcome Hero -->
+              <div class="home-hero-banner">
+                <div class="home-hero-copy">
+                  <span class="home-greeting-pill"><i data-lucide="sparkles"></i> Welcome to Playlistfy</span>
+                  <h1 id="homeGreetingTitle">Good Evening</h1>
+                  <p id="homeGreetingSubtitle">Explore hand-picked soundtracks, browse the iTunes universe, or jump straight into your playlists.</p>
                 </div>
-                <div class="button-row">
-                  <button type="submit" class="primary-btn">Add song</button>
-                </div>
-              </form>
-            </div>
-
-            <div id="playlistList" class="playlist-grid"></div>
-
-            <div class="featured-section">
-              <div class="section-head">
-                <h3>Made For</h3>
-                <button class="text-link">Show all</button>
-              </div>
-
-              <div class="featured-grid">
-                <div class="feature-card dark-card">
-                  <div class="feature-art art-one"></div>
-                  <div class="feature-info">
-                    <span>Markyuu</span>
+                <div class="home-quick-stats">
+                  <div class="quick-stat-chip">
+                    <strong id="homeStatSongCount">0</strong>
+                    <span>Saved Songs</span>
                   </div>
-                </div>
-                <div class="feature-card warm-card">
-                  <div class="feature-art art-two"></div>
-                  <div class="feature-info">
-                    <span>Daily Mix</span>
+                  <div class="quick-stat-chip">
+                    <strong id="homeStatPlCount">0</strong>
+                    <span>Playlists</span>
                   </div>
                 </div>
               </div>
+
+              <!-- Quick Jump to Your Playlists -->
+              <div class="home-section" id="homeUserPlaylistsSection">
+                <div class="section-head">
+                  <div>
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="list-music" style="color: var(--green);"></i> Your Playlists
+                    </h3>
+                    <p style="margin: 4px 0 0; color: var(--soft); font-size: 0.88rem;">Quick access to your personal collections</p>
+                  </div>
+                </div>
+                <div id="homeUserPlaylistsGrid" class="home-user-playlists-grid">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+
+              <!-- Featured Playlists / Recommendations -->
+              <div class="featured-section">
+                <div class="section-head">
+                  <div>
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="sparkles" style="color: var(--green);"></i> Recommended Playlists
+                    </h3>
+                    <p style="margin: 4px 0 0; color: var(--soft); font-size: 0.88rem;">Curated soundtracks loaded with tracks ready to play or import</p>
+                  </div>
+                </div>
+
+                <div id="recommendedGrid" class="recommended-grid">
+                  <!-- Dynamically populated from /api/recommended-playlists -->
+                </div>
+              </div>
+            </div>
+
+            <!-- VIEW 2: PLAYLIST DETAIL VIEW -->
+            <div id="playlistView" class="playlist-view hidden">
+              <!-- Top Nav / Breadcrumbs Bar -->
+              <div class="playlist-view-nav">
+                <button id="playlistBackBtn" class="playlist-back-btn" title="Back to Home">
+                  <i data-lucide="arrow-left"></i> Back to Home
+                </button>
+                <span class="playlist-breadcrumb" id="playlistBreadcrumb">Home / My Playlist</span>
+              </div>
+
+              <!-- Playlist Banner -->
+              <div id="selectedPlaylistBanner" class="selected-playlist-banner">
+                <div id="selectedPlaylistCover" class="selected-playlist-cover"></div>
+                <div class="selected-playlist-copy">
+                  <small id="playlistTypeBadge">Playlist</small>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <h2 id="selectedPlaylistTitle" style="margin: 0;">My Playlist</h2>
+                    <span id="jamSessionBadge" class="jam-badge hidden">
+                      <span class="jam-dot"></span> LIVE JAM
+                    </span>
+                  </div>
+                  <p id="selectedPlaylistMeta" style="margin-top: 6px;">Your personalized soundtrack</p>
+                  <div class="banner-actions">
+                    <button id="bannerPlayAllBtn" class="play-all-btn" title="Play All Songs">
+                      <i data-lucide="play"></i> Play All
+                    </button>
+                    <button id="bannerShuffleBtn" class="banner-secondary-btn" title="Shuffle Playlist">
+                      <i data-lucide="shuffle"></i> Shuffle
+                    </button>
+                    <button id="bannerImportBtn" class="banner-secondary-btn hidden" title="Save to Your Library">
+                      <i data-lucide="folder-plus"></i> Save to Your Library
+                    </button>
+                    <button id="bannerAddSongBtn" class="banner-secondary-btn" title="Add New Song">
+                      <i data-lucide="plus"></i> Add Song
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tabs -->
+              <div class="pill-row">
+                <button class="tab active" data-tab="all">
+                  <i data-lucide="list" style="width: 15px; height: 15px; margin-right: 6px;"></i> All Tracks
+                </button>
+                <button class="tab" data-tab="add" id="addSongTabBtn">
+                  <i data-lucide="plus-circle" style="width: 15px; height: 15px; margin-right: 6px;"></i> Add Song Form
+                </button>
+                <button class="tab" data-tab="search">
+                  <i data-lucide="sparkles" style="width: 15px; height: 15px; margin-right: 6px;"></i> Search iTunes
+                </button>
+              </div>
+
+              <!-- Dedicated Clean Search View -->
+              <section id="searchSection" class="search-section hidden">
+                <!-- Quick Discovery Chips Bar -->
+                <div class="search-filter-bar">
+                  <div class="search-tag-group">
+                    <span class="search-tag-label"><i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Quick tags:</span>
+                    <button type="button" class="search-tag-chip" data-query="Taylor Swift">Taylor Swift</button>
+                    <button type="button" class="search-tag-chip" data-query="Coldplay">Coldplay</button>
+                    <button type="button" class="search-tag-chip" data-query="The Weeknd">The Weeknd</button>
+                    <button type="button" class="search-tag-chip" data-query="Adele">Adele</button>
+                    <button type="button" class="search-tag-chip" data-query="Billie Eilish">Billie Eilish</button>
+                    <button type="button" class="search-tag-chip" data-query="Rock">Rock</button>
+                    <button type="button" class="search-tag-chip" data-query="Pop">Pop</button>
+                    <button type="button" class="search-tag-chip" data-query="Alternative">Alternative</button>
+                  </div>
+                </div>
+
+                <!-- Dynamic Search Container -->
+                <div id="searchResults" class="search-results-container"></div>
+              </section>
+
+              <!-- Add Song Form Panel (CRUD Create) -->
+              <div id="musicFormPanel" class="music-form-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <h3 style="margin: 0; font-size: 1.15rem; color: var(--text); display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="plus-circle" style="color: var(--green);"></i> Add Song to Playlist
+                  </h3>
+                  <small style="color: var(--soft);">All 3 fields required</small>
+                </div>
+                <form id="musicForm" class="music-form">
+                  <div class="field-grid">
+                    <label>
+                      <span>Song Title</span>
+                      <input id="song" type="text" name="song" placeholder="e.g. Yellow" required />
+                    </label>
+                    <label>
+                      <span>Artist</span>
+                      <input id="artist" type="text" name="artist" placeholder="e.g. Coldplay" required />
+                    </label>
+                    <label>
+                      <span>Genre</span>
+                      <input id="genre" type="text" name="genre" placeholder="e.g. Alternative" required />
+                    </label>
+                  </div>
+                  <div class="button-row">
+                    <button type="submit" class="primary-btn" style="display: inline-flex; align-items: center; gap: 8px;">
+                      <i data-lucide="plus"></i> Add to Playlist
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Playlist Songs Grid/List (CRUD Read, Update, Delete) -->
+              <div id="playlistList" class="playlist-track-list"></div>
             </div>
           </section>
 
+          <!-- Right Rail Panel -->
           <aside class="right-rail">
-            <div class="album-panel" draggable="true" data-draggable="right-panel">
-              <div class="album-art wide-art"></div>
+            <div id="nowPlayingPanel" class="album-panel" draggable="true" data-draggable="right-panel">
+              <div id="railAlbumArt" class="album-art wide-art"></div>
               <div class="album-meta">
-                <h3>This Is Taylor Swift</h3>
-                <p>Artist</p>
+                <h3 id="railTrackTitle">Nothing Playing</h3>
+                <p id="railTrackArtist">Select a song to play preview</p>
+                <button id="railPlayBtn" class="play-all-btn" style="margin-top: 12px; width: 100%; justify-content: center;">
+                  <i data-lucide="play"></i> Play Preview
+                </button>
               </div>
             </div>
 
             <div class="related-panel" draggable="true" data-draggable="right-panel">
-              <h3>Related music videos</h3>
-              <div class="mini-video"></div>
+              <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="star" style="color: var(--green);"></i> Featured Artist
+              </h3>
+              <div class="mini-video" style="cursor: pointer;" title="Search Taylor Swift on iTunes"></div>
+              <p style="margin-top: 10px; font-size: 0.9rem; color: var(--soft);">Click to explore trending tracks by Taylor Swift on iTunes.</p>
             </div>
           </aside>
         </div>
 
+        <!-- Sticky Footer Hovering Player Bar -->
         <footer id="playerBar" class="player-bar">
           <div class="player-track">
-            <div class="mini-art"></div>
+            <div id="playerMiniArt" class="mini-art"></div>
             <div class="track-details">
-              <strong>My Playlist</strong>
-              <span>Playlist</span>
+              <strong id="playerTrackTitle">Ready to Play</strong>
+              <span id="playerTrackArtist">Select a song</span>
             </div>
           </div>
 
           <div class="player-controls">
             <div class="controls-row">
-              <button class="ctrl-btn">↺</button>
-              <button class="ctrl-btn">⏮</button>
-              <button class="ctrl-btn play-btn">▶</button>
-              <button class="ctrl-btn">⏭</button>
-              <button class="ctrl-btn">↻</button>
+              <button id="shuffleBtn" class="ctrl-btn" title="Shuffle">
+                <i data-lucide="shuffle"></i>
+              </button>
+              <button id="prevBtn" class="ctrl-btn" title="Previous Track">
+                <i data-lucide="skip-back"></i>
+              </button>
+              <button id="playBtn" class="ctrl-btn play-btn" title="Play / Pause">
+                <i data-lucide="play"></i>
+              </button>
+              <button id="nextBtn" class="ctrl-btn" title="Next Track">
+                <i data-lucide="skip-forward"></i>
+              </button>
+              <button id="repeatBtn" class="ctrl-btn" title="Repeat Track">
+                <i data-lucide="repeat"></i>
+              </button>
             </div>
             <div class="timeline">
-              <span>0:06</span>
-              <div class="progress-bar"><span class="progress"></span></div>
-              <span>3:33</span>
+              <span id="playerCurrentTime">0:00</span>
+              <div id="playerProgressBar" class="progress-bar">
+                <span id="playerProgressFill" class="progress" style="width: 0%;"></span>
+              </div>
+              <span id="playerTotalTime">0:30</span>
             </div>
           </div>
 
           <div class="player-actions">
-            <button class="ctrl-btn small">♡</button>
-            <button class="ctrl-btn small">◉</button>
+            <button id="likeBtn" class="ctrl-btn small" title="Favorite">
+              <i data-lucide="heart"></i>
+            </button>
+            <!-- Volume Control -->
+            <div class="volume-control">
+              <button id="muteBtn" class="ctrl-btn small" title="Mute / Unmute">
+                <i data-lucide="volume-2"></i>
+              </button>
+              <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="0.8" title="Volume" />
+            </div>
+            <button id="playerExpandBtn" class="ctrl-btn small" title="Expand View">
+              <i data-lucide="maximize-2"></i>
+            </button>
           </div>
         </footer>
 
+        <!-- Expanded Full Player Overlay -->
         <div id="expandedPlayer" class="expanded-player hidden" aria-live="polite">
           <div class="expanded-player-header">
-            <span>Now Playing</span>
-            <button id="playerCollapseBtn" class="close-player-btn" aria-label="Collapse player">×</button>
+            <span>Now Playing Preview</span>
+            <button id="playerCollapseBtn" class="close-player-btn" aria-label="Collapse player">
+              <i data-lucide="x"></i>
+            </button>
           </div>
-          <div class="expanded-player-art"></div>
+          <div id="expandedArt" class="expanded-player-art"></div>
           <div class="expanded-player-meta">
-            <h3>My Playlist</h3>
-            <p>Playlist</p>
+            <h3 id="expandedTitle">No Song Playing</h3>
+            <p id="expandedArtist">Pick any song from your playlist or iTunes search</p>
           </div>
           <div class="expanded-player-controls">
-            <button class="ctrl-btn">↺</button>
-            <button class="ctrl-btn">⏮</button>
-            <button class="ctrl-btn play-btn expanded-play">▶</button>
-            <button class="ctrl-btn">⏭</button>
-            <button class="ctrl-btn">↻</button>
+            <button id="expShuffleBtn" class="ctrl-btn" title="Shuffle">
+              <i data-lucide="shuffle"></i>
+            </button>
+            <button id="expPrevBtn" class="ctrl-btn" title="Previous">
+              <i data-lucide="skip-back"></i>
+            </button>
+            <button id="expPlayBtn" class="ctrl-btn play-btn expanded-play" title="Play">
+              <i data-lucide="play"></i>
+            </button>
+            <button id="expNextBtn" class="ctrl-btn" title="Next">
+              <i data-lucide="skip-forward"></i>
+            </button>
+            <button id="expRepeatBtn" class="ctrl-btn" title="Repeat">
+              <i data-lucide="repeat"></i>
+            </button>
           </div>
           <div class="expanded-timeline">
-            <span>0:06</span>
-            <div class="progress-bar"><span class="progress"></span></div>
-            <span>3:33</span>
+            <span id="expCurrentTime">0:00</span>
+            <div id="expProgressBar" class="progress-bar">
+              <span id="expProgressFill" class="progress" style="width: 0%;"></span>
+            </div>
+            <span id="expTotalTime">0:30</span>
           </div>
         </div>
       </main>
     </div>
 
+    <!-- Account Menu Popup -->
     <div id="accountMenu" class="account-menu hidden">
       <div class="menu-section">
-        <button class="menu-item">Profile</button>
-        <button class="menu-item">Support</button>
-        <button class="menu-item">Private session</button>
-        <button class="menu-item">Settings</button>
-        <button id="logoutBtn" class="menu-item danger">Log out</button>
+        <button id="accountProfileBtn" class="menu-item">
+          <i data-lucide="user"></i> Profile
+        </button>
+        <button id="accountSupportBtn" class="menu-item">
+          <i data-lucide="help-circle"></i> Support & Docs
+        </button>
+        <button id="accountPrivateBtn" class="menu-item">
+          <i data-lucide="shield"></i> Private session
+        </button>
+        <button id="accountSettingsBtn" class="menu-item">
+          <i data-lucide="sliders"></i> App Settings
+        </button>
+        <button id="logoutBtn" class="menu-item danger">
+          <i data-lucide="log-out"></i> Log out
+        </button>
       </div>
       <div class="menu-section promo">
         <div class="promo-check">✓</div>
-        <p>You’re all caught up</p>
-        <span>Watch this space for news on your followers, playlists, events and more.</span>
+        <p>Playlistfy 2.0</p>
+        <span>Connected to JSON data store and iTunes Music API.</span>
       </div>
     </div>
 
-    <script src="app.js?v=2"></script>
+    <!-- Notification Drawer Popup -->
+    <div id="notificationPopup" class="notification-popup hidden">
+      <div class="notification-header">
+        <h4><i data-lucide="bell" style="width: 17px; height: 17px;"></i> Recent Activity</h4>
+        <button id="clearNotificationsBtn" class="text-link" style="font-size: 0.8rem;">Clear</button>
+      </div>
+      <div id="notificationList" class="notification-list">
+        <div class="notification-item">
+          <i data-lucide="check-circle" style="color: var(--green); margin-top: 2px;"></i>
+          <div>
+            <div>System initialized successfully</div>
+            <div class="time">Ready to play and search</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Profile Modal -->
+    <div id="profileModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i data-lucide="user"></i> User Profile</h3>
+          <button class="modal-close-btn" data-close-modal="profileModal">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Logged in as: <strong id="profileUsername" style="color: var(--green);">demo</strong></p>
+          <div class="modal-stat-grid">
+            <div class="stat-box">
+              <strong id="statSongCount">0</strong>
+              <small>Songs in View</small>
+            </div>
+            <div class="stat-box">
+              <strong id="statPlaylistCount">0</strong>
+              <small>Playlists Created</small>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--soft);">
+            Storage File: <code style="color: var(--green); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">data/musicPlaylist.json</code><br />
+            API Connected: iTunes Search API
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Support / Exam Guide Modal -->
+    <div id="supportModal" class="modal-overlay hidden">
+      <div class="modal-card" style="width: min(100%, 600px);">
+        <div class="modal-header">
+          <h3><i data-lucide="help-circle"></i> CCINPRGL Project Guide</h3>
+          <button class="modal-close-btn" data-close-modal="supportModal">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <h4 style="color: var(--text); margin-top: 0;">Exam Requirement Checklist:</h4>
+          <ul style="padding-left: 20px; margin-bottom: 16px;">
+            <li><strong>JSON Persistence:</strong> All records are saved in <code>data/musicPlaylist.json</code> using Node.js <code>fs</code>.</li>
+            <li><strong>CRUD Routes:</strong> <code>GET /api/music</code>, <code>POST /api/music</code>, <code>PUT /api/music/:id</code>, <code>DELETE /api/music/:id</code>.</li>
+            <li><strong>Three Fields:</strong> <code>song</code>, <code>artist</code>, <code>genre</code>.</li>
+            <li><strong>iTunes API Integration:</strong> <code>/api/lookup</code> extracts <code>song</code>, <code>artist</code>, <code>genre</code>, and real audio previews.</li>
+            <li><strong>Audio Streaming:</strong> Real HTML5 audio streaming with play/pause, seek, shuffle, and repeat.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Create Playlist Modal -->
+    <div id="createPlaylistModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i data-lucide="folder-plus"></i> Create Playlist</h3>
+          <button class="modal-close-btn" data-close-modal="createPlaylistModal">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <form id="createPlaylistForm">
+          <div class="form-row">
+            <label for="newPlaylistName">Playlist Name</label>
+            <input type="text" id="newPlaylistName" placeholder="e.g. Late Night Vibes" required />
+          </div>
+          <div class="button-row" style="margin-top: 16px; justify-content: flex-end;">
+            <button type="button" class="secondary-btn" data-close-modal="createPlaylistModal">Cancel</button>
+            <button type="submit" class="primary-btn">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Interactive Rename Playlist Modal -->
+    <div id="renamePlaylistModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i data-lucide="pencil"></i> Rename Playlist</h3>
+          <button class="modal-close-btn" data-close-modal="renamePlaylistModal">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <form id="renamePlaylistForm">
+          <div class="form-row">
+            <label for="editPlaylistName">New Playlist Name</label>
+            <input type="text" id="editPlaylistName" placeholder="Enter new name" required />
+          </div>
+          <div class="button-row" style="margin-top: 16px; justify-content: flex-end;">
+            <button type="button" class="secondary-btn" data-close-modal="renamePlaylistModal">Cancel</button>
+            <button type="submit" class="primary-btn">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Recommended Playlist Detail Modal -->
+    <div id="recommendedPlaylistModal" class="modal-overlay hidden">
+      <div class="modal-card recommended-modal-card">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="disc-3" style="color: var(--green);"></i>
+            <h3 id="recModalTitle" style="margin: 0;">Playlist Details</h3>
+          </div>
+          <button class="modal-close-btn" data-close-modal="recommendedPlaylistModal">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+          <!-- Banner -->
+          <div class="rec-banner" id="recBanner">
+            <div class="rec-banner-cover" id="recModalCover"></div>
+            <div class="rec-banner-info">
+              <span class="rec-tag" id="recModalTag">Curated</span>
+              <h2 id="recModalHeading" style="margin: 6px 0 4px; font-size: 1.6rem;">Playlist Title</h2>
+              <p id="recModalDesc" style="margin: 0 0 14px 0; color: var(--soft); font-size: 0.9rem;">Playlist description</p>
+              <div class="rec-actions">
+                <button id="recPlayAllBtn" class="primary-btn" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 9px 18px;">
+                  <i data-lucide="play"></i> Play All
+                </button>
+                <button id="recImportBtn" class="secondary-btn" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 9px 18px;">
+                  <i data-lucide="folder-plus"></i> Save to Your Library
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Song list table -->
+          <div class="rec-songs-container">
+            <div class="rec-songs-header">
+              <span>#</span>
+              <span>Title</span>
+              <span>Artist & Genre</span>
+              <span>Duration</span>
+              <span style="text-align: right;">Action</span>
+            </div>
+            <div id="recModalSongList" class="rec-songs-list">
+              <!-- Rendered songs -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="common.js?v=10"></script>
+    <script src="app.js?v=10"></script>
   </body>
 </html>

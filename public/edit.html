@@ -3,38 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Edit Song</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Edit Song - Playlistfy</title>
+    <link rel="stylesheet" href="styles.css?v=6" />
+    <script src="lucide.min.js"></script>
   </head>
-  <body>
-    <div class="container narrow">
-      <h1>Edit Song</h1>
+  <body class="login-page">
+    <main class="login-wrap">
+      <div class="login-card">
+        <div class="brand login-brand">
+          <span class="logo"><i data-lucide="music-2"></i></span>
+          <span>Playlistfy</span>
+        </div>
 
-      <section class="panel">
+        <h2>Edit Song</h2>
+        <p class="muted">Update the song details in your playlist.</p>
+
         <form id="editForm">
           <div class="form-row">
-            <label for="song">Song</label>
-            <input type="text" id="song" name="song" required />
+            <label for="song">Song Title</label>
+            <input type="text" id="song" name="song" placeholder="Enter song title" required />
           </div>
 
           <div class="form-row">
             <label for="artist">Artist</label>
-            <input type="text" id="artist" name="artist" required />
+            <input type="text" id="artist" name="artist" placeholder="Enter artist name" required />
           </div>
 
           <div class="form-row">
             <label for="genre">Genre</label>
-            <input type="text" id="genre" name="genre" required />
+            <input type="text" id="genre" name="genre" placeholder="Enter genre" required />
           </div>
 
-          <div class="button-row">
-            <button type="submit" class="primary-btn">Save Changes</button>
-            <a href="/" class="secondary-link">Back to Playlist</a>
+          <p id="editError" class="form-error hidden" role="alert"></p>
+
+          <div class="button-row" style="margin-top: 18px;">
+            <button type="submit" class="primary-btn" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+              <i data-lucide="check"></i> Save Changes
+            </button>
+            <a href="/index.html" class="secondary-btn" style="text-decoration: none; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+              <i data-lucide="x"></i> Cancel
+            </a>
           </div>
         </form>
-      </section>
-    </div>
+      </div>
+    </main>
 
-    <script src="app.js"></script>
+    <script src="common.js?v=10"></script>
+    <script src="edit.js?v=10"></script>
+    <script>
+      if (window.lucide) { lucide.createIcons(); }
+    </script>
   </body>
 </html>

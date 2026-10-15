@@ -3,39 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Playlistify Login</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Playlistfy Login</title>
+    <link rel="stylesheet" href="styles.css?v=6" />
+    <script src="lucide.min.js"></script>
   </head>
-  <body class="spotify-theme login-page">
-    <div class="login-wrap">
-      <div class="login-card panel">
+  <body class="login-page">
+    <main class="login-wrap">
+      <div class="login-card">
         <div class="brand login-brand">
-          <span class="logo">♫</span>
-          <span>Playlistify</span>
+          <span class="logo"><i data-lucide="music-2"></i></span>
+          <span>Playlistfy</span>
         </div>
 
         <h2>Welcome back</h2>
-        <p class="login-subtext">Log in to build your own soundtrack.</p>
+        <p class="muted">Log in or create an account to manage your personalized playlists.</p>
 
         <form id="loginForm">
           <div class="form-row">
             <label for="loginUsername">Username</label>
-            <input type="text" id="loginUsername" placeholder="Enter your username" required />
+            <input type="text" id="loginUsername" autocomplete="username" placeholder="e.g. demo" required />
           </div>
 
           <div class="form-row">
             <label for="loginPassword">Password</label>
-            <input type="password" id="loginPassword" placeholder="Enter your password" required />
+            <input type="password" id="loginPassword" autocomplete="current-password" placeholder="e.g. demo123" required />
           </div>
 
-          <div class="button-row auth-buttons">
-            <button type="submit" class="primary-btn wide-btn">Login</button>
-            <button type="button" id="registerBtn" class="secondary-btn wide-btn">Create Account</button>
+          <p id="loginError" class="form-error hidden" role="alert"></p>
+
+          <div class="button-col" style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+            <button type="submit" class="primary-btn" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+              <i data-lucide="log-in"></i> Log in
+            </button>
+            <button type="button" id="registerBtn" class="secondary-btn" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+              <i data-lucide="user-plus"></i> Create account
+            </button>
+            <a href="/index.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; margin-top: 8px; color: var(--green); text-decoration: none; font-size: 0.92rem; font-weight: 500;">
+              Continue as Guest <i data-lucide="arrow-right"></i>
+            </a>
           </div>
         </form>
       </div>
-    </div>
+    </main>
 
-    <script src="app.js"></script>
+    <script src="common.js?v=6"></script>
+    <script src="login.js?v=6"></script>
+    <script>
+      if (window.lucide) { lucide.createIcons(); }
+    </script>
   </body>
 </html>

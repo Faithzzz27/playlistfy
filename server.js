@@ -1,12 +1,17 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const {
+  MAIN_LIST,
   createUser,
   authenticateUser,
-  getUserPlaylist,
-  getUserPlaylists,
-  saveUserPlaylist,
+  userExists,
+  getSongs,
+  saveSongs,
+  getPlaylists,
   createPlaylist,
+  renamePlaylist,
+  deletePlaylist,
   getNextId,
 } = require('./db');
 
@@ -15,7 +20,13 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// Serve the main application directly at root /
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Accounts / login page (extra feature)
+app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
@@ -25,217 +36,308 @@ app.get('/login.html', (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Catches errors from async routes (e.g. database problems)
-const asyncHandler = (fn) => (req, res, next) =>
-  Promise.resolve(fn(req, res, next)).catch((error) => {
-    console.error(error);
-    res.status(500).json({ error: 'Server error. Please try again.' });
-  });
+// ---------- Helpers ----------
 
-function getUsernameFromRequest(req) {
-  const headerUser = req.headers['x-user'];
-  const queryUser = req.query.user;
-  const bodyUser = req.body && req.body.username;
-  const candidate = headerUser || queryUser || bodyUser;
-  return candidate ? String(candidate).trim() : null;
+// The logged-in username (from X-User header, query, or defaults to demo)
+function getUsername(req) {
+  const name = req.headers['x-user'] || req.query.user;
+  return (name && String(name).trim()) || 'demo';
 }
 
+// Seamless authentication: defaults to 'demo' if no user session is provided
 function requireLogin(req, res, next) {
-  const username = getUsernameFromRequest(req);
-
-  if (!username) {
-    return res.status(401).json({ error: 'Login required.' });
+  let username = getUsername(req);
+  if (!userExists(username)) {
+    username = 'demo';
   }
-
+  req.username = username;
   next();
 }
 
-app.post('/api/login', asyncHandler(async (req, res) => {
-  const { username, password } = req.body || {};
+// Which playlist to work on: ?list=main (default) or ?list=<playlist id>
+function getListId(req) {
+  return req.query.list ? String(req.query.list) : MAIN_LIST;
+}
 
+// Extra iTunes details we keep with a song (optional, used for artwork and playing music)
+const EXTRA_FIELDS = ['album', 'artwork', 'previewUrl', 'durationMs', 'trackViewUrl', 'releaseDate', 'trackId'];
+
+function pickExtras(body) {
+  const extras = {};
+  EXTRA_FIELDS.forEach((field) => {
+    if (body[field] !== undefined && body[field] !== null && body[field] !== '') {
+      extras[field] = body[field];
+    }
+  });
+  return extras;
+}
+
+// ---------- Accounts (extra feature) ----------
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body || {};
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required.' });
   }
 
-  const user = await authenticateUser(username, password);
-
+  const user = authenticateUser(username, password);
   if (!user) {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
 
   res.json({ username: user.username, message: 'Login successful.' });
-}));
+});
 
-app.post('/api/register', asyncHandler(async (req, res) => {
+app.post('/api/register', (req, res) => {
   const { username, password } = req.body || {};
-
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required.' });
   }
 
-  const newUser = await createUser(username, password);
-
+  const newUser = createUser(username, password);
   if (!newUser) {
     return res.status(409).json({ error: 'Username already exists.' });
   }
 
   res.status(201).json({ username: newUser.username, message: 'Account created successfully.' });
-}));
+});
 
-app.get('/api/music', requireLogin, asyncHandler(async (req, res) => {
-  const username = getUsernameFromRequest(req);
-  res.json(await getUserPlaylist(username));
-}));
+// ---------- Playlists (extra feature) ----------
 
-app.get('/api/playlists', requireLogin, asyncHandler(async (req, res) => {
-  const username = getUsernameFromRequest(req);
-  const playlists = await getUserPlaylists(username);
-  res.json(playlists);
-}));
+app.get('/api/playlists', requireLogin, (req, res) => {
+  res.json(getPlaylists(req.username));
+});
 
-app.post('/api/playlists', requireLogin, asyncHandler(async (req, res) => {
+app.post('/api/playlists', requireLogin, (req, res) => {
   const { name } = req.body || {};
-  const username = getUsernameFromRequest(req);
-
   if (!name || String(name).trim() === '') {
     return res.status(400).json({ error: 'Playlist name is required.' });
   }
 
-  const newPlaylist = await createPlaylist(username, name);
-
-  if (!newPlaylist) {
+  const newList = createPlaylist(req.username, name);
+  if (!newList) {
     return res.status(409).json({ error: 'Playlist name already exists.' });
   }
 
-  res.status(201).json(newPlaylist);
-}));
+  res.status(201).json(newList);
+});
 
-app.post('/api/music', requireLogin, asyncHandler(async (req, res) => {
-  const { song, artist, genre } = req.body || {};
-  const username = getUsernameFromRequest(req);
-
-  if (!song || !artist || !genre) {
-    return res.status(400).json({ error: 'Song, artist, and genre are required.' });
+app.put('/api/playlists/:id', requireLogin, (req, res) => {
+  const { name } = req.body || {};
+  if (!name || String(name).trim() === '') {
+    return res.status(400).json({ error: 'Playlist name is required.' });
   }
 
-  const records = await getUserPlaylist(username);
-  const newRecord = {
-    id: getNextId(records),
-    song: String(song).trim(),
-    artist: String(artist).trim(),
-    genre: String(genre).trim(),
-  };
+  const result = renamePlaylist(req.username, req.params.id, name);
+  if (result === 'duplicate') {
+    return res.status(409).json({ error: 'Playlist name already exists.' });
+  }
+  if (!result) {
+    return res.status(404).json({ error: 'Playlist not found.' });
+  }
 
-  records.push(newRecord);
-  await saveUserPlaylist(username, records);
-  res.status(201).json(newRecord);
-}));
+  res.json(result);
+});
 
-app.get('/api/music/:id', requireLogin, asyncHandler(async (req, res) => {
-  const username = getUsernameFromRequest(req);
-  const records = await getUserPlaylist(username);
+app.delete('/api/playlists/:id', requireLogin, (req, res) => {
+  if (!deletePlaylist(req.username, req.params.id)) {
+    return res.status(404).json({ error: 'Playlist not found.' });
+  }
+  res.json({ message: 'Playlist deleted.' });
+});
+
+// ---------- Songs: the 4 main CRUD routes ----------
+
+// READ - show the whole list
+app.get('/api/music', requireLogin, (req, res) => {
+  const records = getSongs(req.username, getListId(req));
+  if (!records) {
+    return res.status(404).json({ error: 'Playlist not found.' });
+  }
+  res.json(records);
+});
+
+// READ ONE - used by the edit page
+app.get('/api/music/:id', requireLogin, (req, res) => {
+  const records = getSongs(req.username, getListId(req)) || [];
   const record = records.find((item) => item.id === Number(req.params.id));
 
   if (!record) {
     return res.status(404).json({ error: 'Record not found.' });
   }
-
   res.json(record);
-}));
+});
 
-app.put('/api/music/:id', requireLogin, asyncHandler(async (req, res) => {
-  const { song, artist, genre } = req.body || {};
-  const username = getUsernameFromRequest(req);
+// CREATE - add a song
+app.post('/api/music', requireLogin, (req, res) => {
+  const body = req.body || {};
+  const { song, artist, genre } = body;
+  const listId = getListId(req);
 
   if (!song || !artist || !genre) {
     return res.status(400).json({ error: 'Song, artist, and genre are required.' });
   }
 
-  const records = await getUserPlaylist(username);
+  const records = getSongs(req.username, listId);
+  if (!records) {
+    return res.status(404).json({ error: 'Playlist not found.' });
+  }
+
+  const newRecord = {
+    id: getNextId(records),
+    song: String(song).trim(),
+    artist: String(artist).trim(),
+    genre: String(genre).trim(),
+    ...pickExtras(body),
+  };
+
+  records.push(newRecord);
+  saveSongs(req.username, listId, records);
+  res.status(201).json(newRecord);
+});
+
+// UPDATE - edit a song
+app.put('/api/music/:id', requireLogin, (req, res) => {
+  const { song, artist, genre } = req.body || {};
+  const listId = getListId(req);
+
+  if (!song || !artist || !genre) {
+    return res.status(400).json({ error: 'Song, artist, and genre are required.' });
+  }
+
+  const records = getSongs(req.username, listId) || [];
   const index = records.findIndex((item) => item.id === Number(req.params.id));
 
   if (index === -1) {
     return res.status(404).json({ error: 'Record not found.' });
   }
 
-  records[index] = {
-    ...records[index],
+  const old = records[index];
+  const updated = {
+    ...old,
     song: String(song).trim(),
     artist: String(artist).trim(),
     genre: String(genre).trim(),
   };
 
-  await saveUserPlaylist(username, records);
-  res.json(records[index]);
-}));
+  // If the song or artist changed, the old iTunes preview no longer matches, so drop it.
+  // The player will look it up again the next time the song is played.
+  if (updated.song !== old.song || updated.artist !== old.artist) {
+    EXTRA_FIELDS.forEach((field) => delete updated[field]);
+  }
 
-app.delete('/api/music/:id', requireLogin, asyncHandler(async (req, res) => {
-  const username = getUsernameFromRequest(req);
-  const records = await getUserPlaylist(username);
+  records[index] = updated;
+  saveSongs(req.username, listId, records);
+  res.json(updated);
+});
+
+// DELETE - remove a song
+app.delete('/api/music/:id', requireLogin, (req, res) => {
+  const listId = getListId(req);
+  const records = getSongs(req.username, listId) || [];
   const filtered = records.filter((item) => item.id !== Number(req.params.id));
 
   if (filtered.length === records.length) {
     return res.status(404).json({ error: 'Record not found.' });
   }
 
-  await saveUserPlaylist(username, filtered);
+  saveSongs(req.username, listId, filtered);
   res.json({ message: 'Record deleted.' });
-}));
+});
+
+// ---------- Online lookup: iTunes Search API ----------
+// Example: https://itunes.apple.com/search?term=coldplay&media=music&entity=song&limit=12
 
 app.get('/api/lookup', async (req, res) => {
-  const term = req.query.term;
+  const term = String(req.query.term || '').trim();
+  const limit = Math.min(Number(req.query.limit) || 12, 50);
 
-  if (!term || String(term).trim() === '') {
+  if (!term) {
     return res.status(400).json({ error: 'Please enter a song or artist name.' });
   }
 
-  const sources = [
-    {
-      name: 'AudioDB',
-      url: `https://www.theaudiodb.com/api/v1/json/2/searchtrack.php?t=${encodeURIComponent(term)}`,
-      parse: (data) => {
-        const tracks = Array.isArray(data?.track) ? data.track : [];
-        return tracks.slice(0, 10).map((item) => ({
-          song: item.strTrack || 'Unknown track',
-          artist: item.strArtist || 'Unknown artist',
-          genre: item.strGenre || 'Unknown genre',
-        }));
-      },
-    },
-    {
-      name: 'iTunes',
-      url: `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=10`,
-      parse: (data) => {
-        const tracks = Array.isArray(data?.results) ? data.results : [];
-        return tracks.slice(0, 10).map((item) => ({
-          song: item.trackName || 'Unknown track',
-          artist: item.artistName || 'Unknown artist',
-          genre: item.primaryGenreName || 'Unknown genre',
-        }));
-      },
-    },
-  ];
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`;
 
-  for (const source of sources) {
-    try {
-      const response = await fetch(source.url);
-
-      if (!response.ok) {
-        continue;
-      }
-
-      const data = await response.json();
-      const results = source.parse(data);
-
-      if (results.length) {
-        return res.json(results);
-      }
-    } catch (error) {
-      console.error(`${source.name} lookup failed:`, error.message);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return res.status(502).json({ error: 'iTunes is not responding. Please try again.' });
     }
-  }
 
-  return res.status(502).json({ error: 'Could not fetch music results from the available free APIs.' });
+    const data = await response.json();
+    const items = Array.isArray(data.results) ? data.results : [];
+
+    // Read every useful field that iTunes gives back for a song
+    const results = items.map((item) => ({
+      // The 3 fields of our record
+      song: item.trackName || 'Unknown track',
+      artist: item.artistName || 'Unknown artist',
+      genre: item.primaryGenreName || 'Unknown genre',
+      // Extra details from iTunes
+      album: item.collectionName || '',
+      artwork: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '600x600bb') : '',
+      artworkSmall: item.artworkUrl60 || item.artworkUrl30 || '',
+      previewUrl: item.previewUrl || '', // 30-second song preview we can actually play
+      durationMs: item.trackTimeMillis || 0,
+      releaseDate: item.releaseDate || '',
+      trackNumber: item.trackNumber || null,
+      trackCount: item.trackCount || null,
+      discNumber: item.discNumber || null,
+      discCount: item.discCount || null,
+      explicit: item.trackExplicitness === 'explicit',
+      trackPrice: item.trackPrice ?? null,
+      collectionPrice: item.collectionPrice ?? null,
+      currency: item.currency || '',
+      country: item.country || '',
+      isStreamable: Boolean(item.isStreamable),
+      trackId: item.trackId || null,
+      artistId: item.artistId || null,
+      collectionId: item.collectionId || null,
+      trackViewUrl: item.trackViewUrl || '',
+      artistViewUrl: item.artistViewUrl || '',
+      collectionViewUrl: item.collectionViewUrl || '',
+    }));
+
+    res.json(results);
+  } catch (error) {
+    console.error('iTunes lookup failed:', error.message);
+    res.status(502).json({ error: 'Could not reach iTunes. Check your internet connection.' });
+  }
+});
+
+// ---------- Recommended Curated Playlists ----------
+
+app.get('/api/recommended-playlists', (req, res) => {
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, 'data', 'recommendedPlaylists.json'), 'utf8');
+    res.json(JSON.parse(raw));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load recommended playlists.' });
+  }
+});
+
+app.post('/api/recommended-playlists/:id/import', requireLogin, (req, res) => {
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, 'data', 'recommendedPlaylists.json'), 'utf8');
+    const list = JSON.parse(raw);
+    const rec = list.find((p) => p.id === req.params.id);
+    if (!rec) {
+      return res.status(404).json({ error: 'Recommended playlist not found.' });
+    }
+
+    let targetPl = createPlaylist(req.username, rec.name);
+    if (!targetPl) {
+      targetPl = createPlaylist(req.username, `${rec.name} (Curated)`);
+    }
+
+    if (targetPl && Array.isArray(rec.songs)) {
+      saveSongs(req.username, targetPl.id, rec.songs);
+    }
+
+    res.status(201).json({ message: `Imported "${rec.name}" to your library!`, playlist: targetPl });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to import recommended playlist.' });
+  }
 });
 
 app.listen(port, () => {

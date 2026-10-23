@@ -125,7 +125,46 @@ const bannerCover = document.getElementById('selectedPlaylistCover');
 const bannerPlayAllBtn = document.getElementById('bannerPlayAllBtn');
 const bannerShuffleBtn = document.getElementById('bannerShuffleBtn');
 const bannerAddSongBtn = document.getElementById('bannerAddSongBtn');
+const bannerChangeCoverBtn = document.getElementById('bannerChangeCoverBtn');
 const jamSessionBadge = document.getElementById('jamSessionBadge');
+
+// Change Playlist Cover Modal Elements
+const changeCoverForm = document.getElementById('changeCoverForm');
+const coverPreviewBox = document.getElementById('coverPreviewBox');
+const coverFileInput = document.getElementById('coverFileInput');
+const coverUploadTriggerBtn = document.getElementById('coverUploadTriggerBtn');
+const coverUrlInput = document.getElementById('coverUrlInput');
+const coverSuggestionsGrid = document.getElementById('coverSuggestionsGrid');
+const resetCoverBtn = document.getElementById('resetCoverBtn');
+let pendingCoverValue = '';
+
+function getCoverCssStyle(coverValue, fallbackGradient = 'linear-gradient(135deg, #7c3aed, #06b6d4)') {
+  const val = String(coverValue || '').trim();
+  if (!val) return `background-image: ${fallbackGradient};`;
+  if (val.startsWith('linear-gradient') || val.startsWith('radial-gradient')) {
+    return `background-image: ${val};`;
+  }
+  const safeUrl = val.replace(/["'\\]/g, '\\$&');
+  return `background-image: url('${safeUrl}'); background-size: cover; background-position: center;`;
+}
+
+function applyCoverBackground(elem, coverValue, fallbackGradient = 'linear-gradient(135deg, #7c3aed, #06b6d4)') {
+  if (!elem) return;
+  const val = String(coverValue || '').trim();
+  if (!val) {
+    elem.style.backgroundImage = fallbackGradient;
+    elem.style.backgroundSize = 'cover';
+    elem.style.backgroundPosition = 'center';
+  } else if (val.startsWith('linear-gradient') || val.startsWith('radial-gradient')) {
+    elem.style.backgroundImage = val;
+    elem.style.backgroundSize = 'cover';
+    elem.style.backgroundPosition = 'center';
+  } else {
+    elem.style.backgroundImage = `url("${val.replace(/"/g, '\\"')}")`;
+    elem.style.backgroundSize = 'cover';
+    elem.style.backgroundPosition = 'center';
+  }
+}
 
 // Player Elements (Sticky footer)
 const playerBar = document.getElementById('playerBar');
@@ -197,7 +236,7 @@ function updatePlayerUI(track, isPlayingState) {
       playerMiniArt.style.backgroundImage = `url('${artUrl}')`;
       playerMiniArt.style.backgroundSize = 'cover';
     } else {
-      playerMiniArt.style.backgroundImage = 'linear-gradient(135deg, #1ed760, #2e5eee)';
+      playerMiniArt.style.backgroundImage = 'linear-gradient(135deg, #7c3aed, #06b6d4)';
     }
   }
 
@@ -208,7 +247,7 @@ function updatePlayerUI(track, isPlayingState) {
     if (artUrl) {
       railAlbumArt.style.backgroundImage = `url('${artUrl}')`;
     } else {
-      railAlbumArt.style.backgroundImage = 'linear-gradient(135deg, rgba(30,215,96,0.2), rgba(0,0,0,0.8))';
+      railAlbumArt.style.backgroundImage = 'linear-gradient(135deg, rgba(124,58,237,0.35), rgba(6,182,212,0.15))';
     }
   }
 
@@ -219,7 +258,7 @@ function updatePlayerUI(track, isPlayingState) {
     if (artUrl) {
       expandedArt.style.backgroundImage = `url('${artUrl}')`;
     } else {
-      expandedArt.style.backgroundImage = 'linear-gradient(135deg, #1ed760, #2e5eee)';
+      expandedArt.style.backgroundImage = 'linear-gradient(135deg, #7c3aed, #06b6d4)';
     }
   }
 
@@ -240,8 +279,8 @@ function updatePlayerUI(track, isPlayingState) {
   // Like button
   if (likeBtn && track) {
     const isLiked = likedTrackIds.has(track.id);
-    likeBtn.style.color = isLiked ? '#1ed760' : '';
-    likeBtn.innerHTML = isLiked ? '<i data-lucide="heart" style="fill: #1ed760;"></i>' : '<i data-lucide="heart"></i>';
+    likeBtn.style.color = isLiked ? '#f43f5e' : '';
+    likeBtn.innerHTML = isLiked ? '<i data-lucide="heart" style="fill: #f43f5e; color: #f43f5e;"></i>' : '<i data-lucide="heart"></i>';
   }
 
   // Highlight active row in playlist
@@ -252,7 +291,7 @@ function updatePlayerUI(track, isPlayingState) {
     if (numSpan) {
       const idx = Number(row.dataset.index) + 1;
       if (track && rowId === track.id) {
-        numSpan.innerHTML = isPlayingState ? '<i data-lucide="volume-2" style="color: var(--green); width: 16px; height: 16px;"></i>' : '<i data-lucide="pause" style="width: 16px; height: 16px;"></i>';
+        numSpan.innerHTML = isPlayingState ? '<span class="eq-visualizer"><span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span></span>' : '<i data-lucide="pause" style="width: 15px; height: 15px; color: var(--cyan);"></i>';
       } else {
         numSpan.textContent = idx;
       }
@@ -534,9 +573,9 @@ function renderPlaylist() {
 
         return `
           <div class="playlist-track-row ${isCurrent ? 'active-track' : ''}" data-track-id="${escapeHtml(track.id)}" data-index="${index}">
-            <span class="track-number">${isCurrent && !audio.paused ? '<i data-lucide="volume-2" style="width: 15px; height: 15px; color: var(--green);"></i>' : index + 1}</span>
+            <span class="track-number">${isCurrent && !audio.paused ? '<span class="eq-visualizer"><span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span></span>' : index + 1}</span>
             <div class="track-main">
-              <div class="track-art" style="${art ? `background-image: url('${art}'); background-size: cover;` : 'background: linear-gradient(135deg, #7c4dff, #1ed760);'}"></div>
+              <div class="track-art" style="${art ? `background-image: url('${art}'); background-size: cover;` : 'background: linear-gradient(135deg, #7c3aed, #06b6d4);'}"></div>
               <div class="track-copy">
                 <strong>${escapeHtml(track.song)}</strong>
                 <span class="track-sub-artist">${escapeHtml(track.artist)}</span>
@@ -546,7 +585,7 @@ function renderPlaylist() {
             <span class="track-duration">${durationText}</span>
             <div class="track-actions">
               <button class="track-action-btn track-like-btn ${isLiked ? 'liked' : ''}" data-id="${escapeHtml(track.id || track.song)}" title="${isLiked ? 'Unlike' : 'Like'}">
-                <i data-lucide="heart" style="${isLiked ? 'fill: #1ed760; color: #1ed760;' : ''}"></i>
+                <i data-lucide="heart" style="${isLiked ? 'fill: #f43f5e; color: #f43f5e;' : ''}"></i>
               </button>
               ${currentCuratedPlaylist ? `
                 <button class="track-action-btn track-curated-add-btn" data-index="${index}" title="Add song to your library" style="padding: 5px 10px; background: rgba(255,255,255,0.06); gap: 4px;">
@@ -710,27 +749,62 @@ if (musicForm) {
 
 let searchDebounceTimer = null;
 let currentSearchQuery = '';
+let searchOpenedFromHome = false;
 
 // Switch between Main Views / Tabs: 'all' (playlist), 'add' (form), 'search' (iTunes lookup)
-function switchTab(tabName) {
+function switchTab(tabName, pushHistory = true) {
   document.querySelectorAll('.pill-row .tab').forEach((t) => {
     t.classList.toggle('active', t.dataset.tab === tabName);
   });
 
   if (tabName === 'search') {
+    const wasOnHome = homeView && !homeView.classList.contains('hidden');
+    if (wasOnHome) {
+      searchOpenedFromHome = true;
+      homeView.classList.add('hidden');
+    }
+    if (playlistView && playlistView.classList.contains('hidden')) {
+      playlistView.classList.remove('hidden');
+    }
+
+    sidebarHomeBtn?.classList.remove('active');
+    sidebarSearchBtn?.classList.add('active');
+
+    if (searchOpenedFromHome) {
+      if (playlistBreadcrumb) playlistBreadcrumb.textContent = 'Home / Search';
+      if (selectedPlaylistBanner) selectedPlaylistBanner.classList.add('hidden');
+    } else {
+      if (playlistBreadcrumb) playlistBreadcrumb.textContent = `Home / ${currentPlaylistName} / Search`;
+    }
+
     if (playlistList) playlistList.classList.add('hidden');
     if (musicFormPanel) musicFormPanel.classList.add('hidden');
     if (searchSection) searchSection.classList.remove('hidden');
 
+    if (pushHistory && history.state?.view !== 'search') {
+      history.pushState({ view: 'search' }, '', '?search=1');
+    }
+
     if (searchTermInput) {
-      searchTermInput.focus();
+      if (document.activeElement !== searchTermInput) {
+        searchTermInput.focus();
+      }
       if (!searchTermInput.value.trim()) {
         renderSearchExplore();
-      } else {
-        performSearch(searchTermInput.value.trim());
       }
     }
   } else if (tabName === 'add') {
+    searchOpenedFromHome = false;
+    if (homeView && !homeView.classList.contains('hidden')) {
+      homeView.classList.add('hidden');
+    }
+    if (playlistView && playlistView.classList.contains('hidden')) {
+      playlistView.classList.remove('hidden');
+    }
+    sidebarHomeBtn?.classList.remove('active');
+    sidebarSearchBtn?.classList.remove('active');
+
+    if (selectedPlaylistBanner) selectedPlaylistBanner.classList.remove('hidden');
     if (searchSection) searchSection.classList.add('hidden');
     if (playlistList) playlistList.classList.remove('hidden');
     if (musicFormPanel) {
@@ -738,11 +812,27 @@ function switchTab(tabName) {
       musicFormPanel.scrollIntoView({ behavior: 'smooth' });
       document.getElementById('song')?.focus();
     }
+    if (playlistBreadcrumb) playlistBreadcrumb.textContent = `Home / ${currentPlaylistName}`;
   } else {
     // 'all' tracks
+    searchOpenedFromHome = false;
+    if (homeView && !homeView.classList.contains('hidden')) {
+      homeView.classList.add('hidden');
+    }
+    if (playlistView && playlistView.classList.contains('hidden')) {
+      playlistView.classList.remove('hidden');
+    }
+    sidebarHomeBtn?.classList.remove('active');
+    sidebarSearchBtn?.classList.remove('active');
+
+    if (selectedPlaylistBanner) selectedPlaylistBanner.classList.remove('hidden');
     if (searchSection) searchSection.classList.add('hidden');
     if (musicFormPanel) musicFormPanel.classList.add('hidden');
     if (playlistList) playlistList.classList.remove('hidden');
+    if (playlistBreadcrumb) playlistBreadcrumb.textContent = `Home / ${currentPlaylistName}`;
+    if (!currentSongs.length && currentListId) {
+      loadPlaylist();
+    }
   }
 
   refreshIcons();
@@ -836,9 +926,9 @@ async function performSearch(queryParam) {
     return;
   }
 
-  // Ensure searchSection is active
-  if (searchSection && searchSection.classList.contains('hidden')) {
-    switchTab('search');
+  // Ensure searchSection and playlistView are active
+  if ((playlistView && playlistView.classList.contains('hidden')) || (searchSection && searchSection.classList.contains('hidden'))) {
+    switchTab('search', false);
   }
 
   // Show loading spinner
@@ -895,7 +985,7 @@ function renderSearchResults(query, results) {
         <span class="count-badge">${results.length} found</span>
       </h3>
       <button id="closeSearchBtn" class="text-link" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.88rem;">
-        <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Return to Playlist
+        <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> ${searchOpenedFromHome ? 'Return to Home' : 'Return to Playlist'}
       </button>
     </div>
 
@@ -995,7 +1085,13 @@ function renderSearchResults(query, results) {
   // Attach Close Button
   const closeBtn = document.getElementById('closeSearchBtn');
   if (closeBtn) {
-    closeBtn.onclick = () => switchTab('all');
+    closeBtn.onclick = () => {
+      if (searchOpenedFromHome) {
+        showHomeView();
+      } else {
+        switchTab('all');
+      }
+    };
   }
 
   // Attach Preview Play Buttons
@@ -1063,13 +1159,14 @@ if (searchTermInput) {
     }
 
     clearTimeout(searchDebounceTimer);
+
+    if ((playlistView && playlistView.classList.contains('hidden')) || (searchSection && searchSection.classList.contains('hidden'))) {
+      switchTab('search', false);
+    }
+
     if (!val.trim()) {
       renderSearchExplore();
       return;
-    }
-
-    if (searchSection && searchSection.classList.contains('hidden')) {
-      switchTab('search');
     }
 
     searchDebounceTimer = setTimeout(() => {
@@ -1081,13 +1178,26 @@ if (searchTermInput) {
     if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
       clearTimeout(searchDebounceTimer);
+      if ((playlistView && playlistView.classList.contains('hidden')) || (searchSection && searchSection.classList.contains('hidden'))) {
+        switchTab('search', false);
+      }
       performSearch(searchTermInput.value.trim());
+    } else if (e.key === 'Escape') {
+      searchTermInput.value = '';
+      searchClearBtn?.classList.add('hidden');
+      clearTimeout(searchDebounceTimer);
+      searchTermInput.blur();
+      if (searchOpenedFromHome) {
+        showHomeView();
+      } else {
+        renderSearchExplore();
+      }
     }
   });
 
   searchTermInput.addEventListener('focus', () => {
-    if (searchSection && searchSection.classList.contains('hidden')) {
-      switchTab('search');
+    if ((playlistView && playlistView.classList.contains('hidden')) || (searchSection && searchSection.classList.contains('hidden'))) {
+      switchTab('search', false);
     }
   });
 }
@@ -1102,17 +1212,20 @@ if (searchClearBtn && searchTermInput) {
   });
 }
 
-// Quick browse tag chips listener
-document.querySelectorAll('.search-tag-chip').forEach((chip) => {
-  chip.addEventListener('click', () => {
+// Quick browse tag chips listener using delegation
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('.search-tag-chip');
+  if (chip) {
     const q = chip.dataset.query;
-    if (searchTermInput) {
-      searchTermInput.value = q;
-      searchClearBtn?.classList.remove('hidden');
+    if (q) {
+      if (searchTermInput) {
+        searchTermInput.value = q;
+        searchClearBtn?.classList.remove('hidden');
+      }
+      switchTab('search');
+      performSearch(q);
     }
-    switchTab('search');
-    performSearch(q);
-  });
+  }
 });
 
 // ==========================================
@@ -1127,11 +1240,13 @@ async function loadPlaylistLibrary() {
     allPlaylists = Array.isArray(playlists) ? playlists : [];
 
     libraryList.innerHTML = allPlaylists
-      .map(
-        (pl) => `
+      .map((pl) => {
+        const hasCover = Boolean(pl.cover && String(pl.cover).trim());
+        const coverStyle = hasCover ? getCoverCssStyle(pl.cover) : '';
+        return `
           <div class="library-item ${String(pl.id) === String(currentListId) ? 'selected-playlist' : ''}" data-id="${escapeHtml(pl.id)}" data-name="${escapeHtml(pl.name)}">
-            <span class="mini-icon ${String(pl.id) === 'main' ? 'purple' : 'teal'}">
-              <i data-lucide="list-music" style="width: 20px; height: 20px;"></i>
+            <span class="mini-icon ${hasCover ? 'has-cover' : (String(pl.id) === 'main' ? 'purple' : 'teal')}" style="${coverStyle}">
+              ${hasCover && !String(pl.cover).startsWith('linear-gradient') ? '' : '<i data-lucide="list-music" style="width: 20px; height: 20px;"></i>'}
             </span>
             <div>
               <strong>${escapeHtml(pl.name)}</strong>
@@ -1141,8 +1256,8 @@ async function loadPlaylistLibrary() {
               <i data-lucide="more-vertical" style="width: 15px; height: 15px;"></i>
             </button>
           </div>
-        `
-      )
+        `;
+      })
       .join('');
 
     refreshIcons();
@@ -1165,6 +1280,8 @@ async function loadPlaylistLibrary() {
         toggleMoreOptionsMenu(true, btn);
       });
     });
+
+    renderHomeUserPlaylists();
   } catch (err) {
     console.error('Load playlist library error:', err);
   }
@@ -1230,6 +1347,189 @@ if (renamePlaylistForm) {
     } catch (err) {
       showToast(err.message || 'Could not rename playlist.');
     }
+  });
+}
+
+// Change Playlist Picture Modal Handling
+const PRESET_COVERS = [
+  'linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%)',
+  'linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #7c3aed 100%)',
+  'linear-gradient(135deg, #10b981 0%, #06b6d4 55%, #3b82f6 100%)',
+  'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
+];
+
+function updateCoverModalPreview(val) {
+  pendingCoverValue = String(val || '').trim();
+  applyCoverBackground(coverPreviewBox, pendingCoverValue);
+  if (coverSuggestionsGrid) {
+    coverSuggestionsGrid.querySelectorAll('.cover-suggestion-item').forEach((item) => {
+      item.classList.toggle('selected', item.dataset.cover === pendingCoverValue);
+    });
+  }
+}
+
+function openChangeCoverModal() {
+  if (currentCuratedPlaylist) {
+    showToast('Save this curated playlist to your library first to customize its picture.');
+    return;
+  }
+
+  const plObj = allPlaylists.find((p) => String(p.id) === String(currentListId));
+  const existingCover = plObj && plObj.cover ? plObj.cover : '';
+  pendingCoverValue = existingCover;
+
+  if (coverFileInput) coverFileInput.value = '';
+  if (coverUrlInput) {
+    coverUrlInput.value = existingCover && !existingCover.startsWith('data:') && !existingCover.startsWith('linear-gradient')
+      ? existingCover
+      : '';
+  }
+
+  // Build suggestions from current songs + recommended covers + presets
+  if (coverSuggestionsGrid) {
+    const songArtworks = [];
+    currentSongs.forEach((s) => {
+      if (s.artwork && !songArtworks.includes(s.artwork)) {
+        songArtworks.push(s.artwork);
+      }
+    });
+    if (songArtworks.length < 4 && Array.isArray(recommendedPlaylists)) {
+      recommendedPlaylists.forEach((rp) => {
+        if (rp.cover && !songArtworks.includes(rp.cover) && songArtworks.length < 6) {
+          songArtworks.push(rp.cover);
+        }
+      });
+    }
+
+    const suggestions = [...songArtworks.slice(0, 6), ...PRESET_COVERS];
+    coverSuggestionsGrid.innerHTML = suggestions
+      .map((item, idx) => {
+        const style = getCoverCssStyle(item);
+        const isSelected = item === existingCover;
+        return `<button type="button" class="cover-suggestion-item ${isSelected ? 'selected' : ''}" data-cover="${escapeHtml(item)}" style="${style}" title="Select option ${idx + 1}"></button>`;
+      })
+      .join('');
+
+    coverSuggestionsGrid.querySelectorAll('.cover-suggestion-item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const chosen = btn.dataset.cover || '';
+        if (coverUrlInput) {
+          coverUrlInput.value = chosen.startsWith('http') ? chosen : '';
+        }
+        updateCoverModalPreview(chosen);
+      });
+    });
+  }
+
+  updateCoverModalPreview(existingCover);
+  openModal('changeCoverModal');
+}
+
+if (coverUploadTriggerBtn && coverFileInput) {
+  coverUploadTriggerBtn.addEventListener('click', () => {
+    coverFileInput.click();
+  });
+
+  coverFileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result;
+      if (typeof dataUrl !== 'string') return;
+
+      // Resize/crop to max 500x500 square via canvas to keep JSON storage fast and compact
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const size = Math.min(img.width, img.height);
+          const targetSize = Math.min(size, 500);
+          const canvas = document.createElement('canvas');
+          canvas.width = targetSize;
+          canvas.height = targetSize;
+          const ctx = canvas.getContext('2d');
+          const sx = (img.width - size) / 2;
+          const sy = (img.height - size) / 2;
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, targetSize, targetSize);
+          const compressed = canvas.toDataURL('image/jpeg', 0.86);
+          if (coverUrlInput) coverUrlInput.value = '';
+          updateCoverModalPreview(compressed);
+          showToast('Image ready! Click Save Picture to apply.');
+        } catch (_) {
+          if (coverUrlInput) coverUrlInput.value = '';
+          updateCoverModalPreview(dataUrl);
+        }
+      };
+      img.onerror = () => {
+        if (coverUrlInput) coverUrlInput.value = '';
+        updateCoverModalPreview(dataUrl);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+if (coverUrlInput) {
+  coverUrlInput.addEventListener('input', () => {
+    const urlVal = coverUrlInput.value.trim();
+    updateCoverModalPreview(urlVal);
+  });
+}
+
+if (resetCoverBtn) {
+  resetCoverBtn.addEventListener('click', () => {
+    if (coverFileInput) coverFileInput.value = '';
+    if (coverUrlInput) coverUrlInput.value = '';
+    updateCoverModalPreview('');
+    showToast('Preview reset to default gradient');
+  });
+}
+
+if (changeCoverForm) {
+  changeCoverForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const updated = await api(`/api/playlists/${encodeURIComponent(currentListId)}/cover`, {
+        method: 'PUT',
+        body: JSON.stringify({ cover: pendingCoverValue }),
+      });
+
+      closeModal('changeCoverModal');
+      if (!currentCuratedPlaylist && bannerCover) {
+        applyCoverBackground(bannerCover, updated.cover);
+      }
+      await loadPlaylistLibrary();
+      showToast(updated.cover ? 'Playlist picture updated!' : 'Playlist picture reset to default.');
+      addNotification('Playlist Picture Changed', `Updated cover for "${currentPlaylistName}"`);
+    } catch (err) {
+      showToast(err.message || 'Could not update playlist picture.');
+    }
+  });
+}
+
+if (bannerCover) {
+  bannerCover.addEventListener('click', () => {
+    if (!currentCuratedPlaylist) {
+      openChangeCoverModal();
+    }
+  });
+  bannerCover.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !currentCuratedPlaylist) {
+      e.preventDefault();
+      openChangeCoverModal();
+    }
+  });
+}
+
+if (bannerChangeCoverBtn) {
+  bannerChangeCoverBtn.addEventListener('click', () => {
+    openChangeCoverModal();
   });
 }
 
@@ -1369,6 +1669,10 @@ if (moreOptionsMenu) {
         if (jamSessionBadge) jamSessionBadge.classList.toggle('hidden', !isJamActive);
         showToast(isJamActive ? 'Jam session started! Group listening enabled.' : 'Jam session ended.');
         addNotification('Jam Mode', isJamActive ? 'Live jam started' : 'Jam ended');
+        break;
+
+      case 'change-cover':
+        openChangeCoverModal();
         break;
 
       case 'edit-details':
@@ -1528,7 +1832,7 @@ if (savedSongsBtn) {
   savedSongsBtn.addEventListener('click', () => {
     isShowingLikedOnly = !isShowingLikedOnly;
     savedSongsBtn.classList.toggle('is-active', isShowingLikedOnly);
-    savedSongsBtn.style.color = isShowingLikedOnly ? '#1ed760' : '';
+    savedSongsBtn.style.color = isShowingLikedOnly ? 'var(--cyan)' : '';
     showToast(isShowingLikedOnly ? `Showing favorites (${likedTrackIds.size} saved)` : 'Showing all playlist songs');
     renderPlaylist();
     updateBannerMeta();
@@ -1694,8 +1998,8 @@ if (likeBtn) {
       showToast(`Removed "${currentPlayingTrack.song}" from favorites`);
     } else {
       likedTrackIds.add(id);
-      likeBtn.style.color = '#1ed760';
-      likeBtn.innerHTML = '<i data-lucide="heart" style="fill: #1ed760;"></i>';
+      likeBtn.style.color = '#f43f5e';
+      likeBtn.innerHTML = '<i data-lucide="heart" style="fill: #f43f5e; color: #f43f5e;"></i>';
       showToast(`Saved "${currentPlayingTrack.song}" to favorites!`);
     }
     refreshIcons();
@@ -1803,11 +2107,13 @@ function openParticularPlaylist(pl, pushHistory = true) {
   activeRecommendedPlaylist = pl;
   currentCuratedPlaylist = pl;
   currentPlaylistName = pl.name;
+  searchOpenedFromHome = false;
 
   if (homeView) homeView.classList.add('hidden');
   if (playlistView) playlistView.classList.remove('hidden');
   if (sidebarHomeBtn) sidebarHomeBtn.classList.remove('active');
   if (sidebarSearchBtn) sidebarSearchBtn.classList.remove('active');
+  if (selectedPlaylistBanner) selectedPlaylistBanner.classList.remove('hidden');
 
   // De-select sidebar library items
   libraryList?.querySelectorAll('.library-item').forEach((i) => i.classList.remove('selected-playlist'));
@@ -1817,8 +2123,8 @@ function openParticularPlaylist(pl, pushHistory = true) {
 
   // Update banner cover, title, meta, badges
   if (bannerCover) {
-    bannerCover.style.backgroundImage = `url('${pl.cover}')`;
-    bannerCover.style.backgroundSize = 'cover';
+    bannerCover.classList.add('readonly-cover');
+    applyCoverBackground(bannerCover, pl.cover);
   }
   if (bannerTitle) bannerTitle.textContent = pl.name;
   if (bannerMeta) {
@@ -1831,8 +2137,7 @@ function openParticularPlaylist(pl, pushHistory = true) {
   // Hide Add Song Form tab for un-imported curated playlists
   const addTab = document.getElementById('addSongTabBtn');
   if (addTab) addTab.classList.add('hidden');
-  const allTab = document.querySelector('.pill-row .tab[data-tab="all"]');
-  if (allTab) allTab.click();
+  switchTab('all', false);
 
   // Import button handling
   const alreadyImported = allPlaylists.find((p) => p.name === pl.name || p.name === `${pl.name} (Curated)`);
@@ -1853,6 +2158,7 @@ function openParticularPlaylist(pl, pushHistory = true) {
   }
 
   if (bannerAddSongBtn) bannerAddSongBtn.classList.add('hidden');
+  if (bannerChangeCoverBtn) bannerChangeCoverBtn.classList.add('hidden');
 
   currentSongs = [...pl.songs];
   renderPlaylist();
@@ -1871,11 +2177,13 @@ async function openUserPlaylist(listId, listName, pushHistory = true) {
   currentPlaylistName = listName || 'My Playlist';
   activeRecommendedPlaylist = null;
   currentCuratedPlaylist = null;
+  searchOpenedFromHome = false;
 
   if (homeView) homeView.classList.add('hidden');
   if (playlistView) playlistView.classList.remove('hidden');
   if (sidebarHomeBtn) sidebarHomeBtn.classList.remove('active');
   if (sidebarSearchBtn) sidebarSearchBtn.classList.remove('active');
+  if (selectedPlaylistBanner) selectedPlaylistBanner.classList.remove('hidden');
 
   // Highlight in sidebar library
   libraryList?.querySelectorAll('.library-item').forEach((i) => {
@@ -1888,14 +2196,18 @@ async function openUserPlaylist(listId, listName, pushHistory = true) {
   if (playlistTypeBadge) playlistTypeBadge.textContent = 'Playlist';
   if (bannerImportBtn) bannerImportBtn.classList.add('hidden');
   if (bannerAddSongBtn) bannerAddSongBtn.classList.remove('hidden');
+  if (bannerChangeCoverBtn) bannerChangeCoverBtn.classList.remove('hidden');
 
   const addTab = document.getElementById('addSongTabBtn');
   if (addTab) addTab.classList.remove('hidden');
 
+  const plObj = allPlaylists.find((p) => String(p.id) === String(currentListId));
   if (bannerCover) {
-    bannerCover.style.backgroundImage = 'linear-gradient(135deg, #7c4dff, #1ed760)';
+    bannerCover.classList.remove('readonly-cover');
+    applyCoverBackground(bannerCover, plObj ? plObj.cover : '');
   }
 
+  switchTab('all', false);
   await loadPlaylist();
 
   if (pushHistory) {
@@ -1909,11 +2221,17 @@ async function openUserPlaylist(listId, listName, pushHistory = true) {
 function showHomeView(pushHistory = true) {
   currentCuratedPlaylist = null;
   activeRecommendedPlaylist = null;
+  searchOpenedFromHome = false;
 
   if (homeView) homeView.classList.remove('hidden');
   if (playlistView) playlistView.classList.add('hidden');
   if (sidebarHomeBtn) sidebarHomeBtn.classList.add('active');
   if (sidebarSearchBtn) sidebarSearchBtn.classList.remove('active');
+
+  if (selectedPlaylistBanner) selectedPlaylistBanner.classList.remove('hidden');
+  if (searchTermInput) searchTermInput.value = '';
+  if (searchClearBtn) searchClearBtn.classList.add('hidden');
+  clearTimeout(searchDebounceTimer);
 
   libraryList?.querySelectorAll('.library-item').forEach((i) => i.classList.remove('selected-playlist'));
 
@@ -1959,15 +2277,21 @@ function renderHomeUserPlaylists() {
       </div>
     `;
   } else {
-    homeUserPlaylistsGrid.innerHTML = allPlaylists.map(pl => `
-      <div class="home-pl-card" data-id="${escapeHtml(pl.id)}" data-name="${escapeHtml(pl.name)}">
-        <div class="home-pl-icon"><i data-lucide="list-music"></i></div>
-        <div class="home-pl-meta">
-          <strong>${escapeHtml(pl.name)}</strong>
-          <small>${pl.count || 0} song${pl.count === 1 ? '' : 's'}</small>
+    homeUserPlaylistsGrid.innerHTML = allPlaylists.map((pl) => {
+      const hasCover = Boolean(pl.cover && String(pl.cover).trim());
+      const coverStyle = hasCover ? getCoverCssStyle(pl.cover) : '';
+      return `
+        <div class="home-pl-card" data-id="${escapeHtml(pl.id)}" data-name="${escapeHtml(pl.name)}">
+          <div class="home-pl-icon ${hasCover ? 'has-cover' : ''}" style="${coverStyle}">
+            ${hasCover && !String(pl.cover).startsWith('linear-gradient') ? '' : '<i data-lucide="list-music"></i>'}
+          </div>
+          <div class="home-pl-meta">
+            <strong>${escapeHtml(pl.name)}</strong>
+            <small>${pl.count || 0} song${pl.count === 1 ? '' : 's'}</small>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   homeUserPlaylistsGrid.querySelectorAll('.home-pl-card').forEach(card => {
@@ -2004,14 +2328,8 @@ if (playlistBackBtn) {
 
 if (sidebarSearchBtn) {
   sidebarSearchBtn.addEventListener('click', () => {
-    if (playlistView && playlistView.classList.contains('hidden')) {
-      openUserPlaylist('main', 'My Playlist');
-    }
-    const searchTab = document.querySelector('.pill-row .tab[data-tab="search"]');
-    if (searchTab) searchTab.click();
+    switchTab('search');
     searchTermInput?.focus();
-    sidebarHomeBtn?.classList.remove('active');
-    sidebarSearchBtn?.classList.add('active');
   });
 }
 
@@ -2053,6 +2371,8 @@ window.addEventListener('popstate', (e) => {
     } else {
       openUserPlaylist(e.state.id, e.state.name, false);
     }
+  } else if (e.state && e.state.view === 'search') {
+    switchTab('search', false);
   } else {
     showHomeView(false);
   }
@@ -2067,9 +2387,10 @@ async function initApp() {
   await loadPlaylistLibrary();
   await loadRecommendedPlaylists();
 
-  // Check URL query param: e.g. ?list=123 or ?list=rec_latenight
+  // Check URL query param: e.g. ?list=123 or ?search=1
   const urlParams = new URLSearchParams(window.location.search);
   const listParam = urlParams.get('list');
+  const searchParam = urlParams.get('search');
 
   if (listParam) {
     const curated = recommendedPlaylists.find(p => p.id === listParam);
@@ -2079,6 +2400,8 @@ async function initApp() {
       const pl = allPlaylists.find(p => String(p.id) === String(listParam));
       await openUserPlaylist(listParam, pl ? pl.name : 'My Playlist', false);
     }
+  } else if (searchParam) {
+    switchTab('search', false);
   } else {
     // Start on Home view!
     showHomeView(false);

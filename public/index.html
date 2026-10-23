@@ -4,13 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Playlistfy - Your Music Soundtrack</title>
-    <link rel="stylesheet" href="styles.css?v=10" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=13" />
     <script src="lucide.min.js"></script>
   </head>
-  <body class="spotify-theme dashboard-page">
-    <div class="spotify-desktop">
+  <body class="playlistfy-theme dashboard-page">
+    <div class="playlistfy-shell spotify-desktop">
       <!-- Left Sidebar Navigation -->
       <aside class="sidebar">
+        <!-- Brand Header -->
+        <div class="sidebar-brand-header">
+          <div class="brand-badge-row">
+            <div class="brand-logo-icon">
+              <i data-lucide="waves"></i>
+            </div>
+            <div class="brand-title-wrap">
+              <span class="brand-name">Playlistfy</span>
+              <span class="brand-tag">SONIC</span>
+            </div>
+          </div>
+        </div>
+
         <div class="nav-cluster">
           <button id="moreOptionsBtn" class="icon-btn tiny" aria-label="More options" title="More options">
             <i data-lucide="more-horizontal"></i>
@@ -30,6 +46,9 @@
           </button>
           <button class="menu-item" data-action="start-jam">
             <i data-lucide="radio"></i> Start a Jam
+          </button>
+          <button class="menu-item" data-action="change-cover">
+            <i data-lucide="image"></i> Change playlist picture
           </button>
           <button class="menu-item" data-action="edit-details">
             <i data-lucide="pencil"></i> Rename playlist
@@ -102,7 +121,7 @@
             <input
               id="searchTerm"
               type="search"
-              placeholder="What do you want to listen to?"
+              placeholder="Search songs, artists, genres on iTunes..."
               autocomplete="off"
               spellcheck="false"
               enterkeyhint="search"
@@ -201,7 +220,12 @@
 
               <!-- Playlist Banner -->
               <div id="selectedPlaylistBanner" class="selected-playlist-banner">
-                <div id="selectedPlaylistCover" class="selected-playlist-cover"></div>
+                <div id="selectedPlaylistCover" class="selected-playlist-cover" role="button" tabindex="0" aria-label="Change playlist picture" title="Click to change playlist picture">
+                  <div id="changeCoverOverlayBtn" class="cover-edit-overlay">
+                    <i data-lucide="camera"></i>
+                    <span>Change Photo</span>
+                  </div>
+                </div>
                 <div class="selected-playlist-copy">
                   <small id="playlistTypeBadge">Playlist</small>
                   <div style="display: flex; align-items: center; gap: 10px;">
@@ -223,6 +247,9 @@
                     </button>
                     <button id="bannerAddSongBtn" class="banner-secondary-btn" title="Add New Song">
                       <i data-lucide="plus"></i> Add Song
+                    </button>
+                    <button id="bannerChangeCoverBtn" class="banner-secondary-btn" title="Change Playlist Picture">
+                      <i data-lucide="image"></i> Change Picture
                     </button>
                   </div>
                 </div>
@@ -320,100 +347,100 @@
             </div>
           </aside>
         </div>
-
-        <!-- Sticky Footer Hovering Player Bar -->
-        <footer id="playerBar" class="player-bar">
-          <div class="player-track">
-            <div id="playerMiniArt" class="mini-art"></div>
-            <div class="track-details">
-              <strong id="playerTrackTitle">Ready to Play</strong>
-              <span id="playerTrackArtist">Select a song</span>
-            </div>
-          </div>
-
-          <div class="player-controls">
-            <div class="controls-row">
-              <button id="shuffleBtn" class="ctrl-btn" title="Shuffle">
-                <i data-lucide="shuffle"></i>
-              </button>
-              <button id="prevBtn" class="ctrl-btn" title="Previous Track">
-                <i data-lucide="skip-back"></i>
-              </button>
-              <button id="playBtn" class="ctrl-btn play-btn" title="Play / Pause">
-                <i data-lucide="play"></i>
-              </button>
-              <button id="nextBtn" class="ctrl-btn" title="Next Track">
-                <i data-lucide="skip-forward"></i>
-              </button>
-              <button id="repeatBtn" class="ctrl-btn" title="Repeat Track">
-                <i data-lucide="repeat"></i>
-              </button>
-            </div>
-            <div class="timeline">
-              <span id="playerCurrentTime">0:00</span>
-              <div id="playerProgressBar" class="progress-bar">
-                <span id="playerProgressFill" class="progress" style="width: 0%;"></span>
-              </div>
-              <span id="playerTotalTime">0:30</span>
-            </div>
-          </div>
-
-          <div class="player-actions">
-            <button id="likeBtn" class="ctrl-btn small" title="Favorite">
-              <i data-lucide="heart"></i>
-            </button>
-            <!-- Volume Control -->
-            <div class="volume-control">
-              <button id="muteBtn" class="ctrl-btn small" title="Mute / Unmute">
-                <i data-lucide="volume-2"></i>
-              </button>
-              <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="0.8" title="Volume" />
-            </div>
-            <button id="playerExpandBtn" class="ctrl-btn small" title="Expand View">
-              <i data-lucide="maximize-2"></i>
-            </button>
-          </div>
-        </footer>
-
-        <!-- Expanded Full Player Overlay -->
-        <div id="expandedPlayer" class="expanded-player hidden" aria-live="polite">
-          <div class="expanded-player-header">
-            <span>Now Playing Preview</span>
-            <button id="playerCollapseBtn" class="close-player-btn" aria-label="Collapse player">
-              <i data-lucide="x"></i>
-            </button>
-          </div>
-          <div id="expandedArt" class="expanded-player-art"></div>
-          <div class="expanded-player-meta">
-            <h3 id="expandedTitle">No Song Playing</h3>
-            <p id="expandedArtist">Pick any song from your playlist or iTunes search</p>
-          </div>
-          <div class="expanded-player-controls">
-            <button id="expShuffleBtn" class="ctrl-btn" title="Shuffle">
-              <i data-lucide="shuffle"></i>
-            </button>
-            <button id="expPrevBtn" class="ctrl-btn" title="Previous">
-              <i data-lucide="skip-back"></i>
-            </button>
-            <button id="expPlayBtn" class="ctrl-btn play-btn expanded-play" title="Play">
-              <i data-lucide="play"></i>
-            </button>
-            <button id="expNextBtn" class="ctrl-btn" title="Next">
-              <i data-lucide="skip-forward"></i>
-            </button>
-            <button id="expRepeatBtn" class="ctrl-btn" title="Repeat">
-              <i data-lucide="repeat"></i>
-            </button>
-          </div>
-          <div class="expanded-timeline">
-            <span id="expCurrentTime">0:00</span>
-            <div id="expProgressBar" class="progress-bar">
-              <span id="expProgressFill" class="progress" style="width: 0%;"></span>
-            </div>
-            <span id="expTotalTime">0:30</span>
-          </div>
-        </div>
       </main>
+    </div>
+
+    <!-- Docked & Pinned Bottom Player Bar -->
+    <footer id="playerBar" class="player-bar">
+      <div class="player-track">
+        <div id="playerMiniArt" class="mini-art"></div>
+        <div class="track-details">
+          <strong id="playerTrackTitle">Ready to Play</strong>
+          <span id="playerTrackArtist">Select a song</span>
+        </div>
+      </div>
+
+      <div class="player-controls">
+        <div class="controls-row">
+          <button id="shuffleBtn" class="ctrl-btn" title="Shuffle">
+            <i data-lucide="shuffle"></i>
+          </button>
+          <button id="prevBtn" class="ctrl-btn" title="Previous Track">
+            <i data-lucide="skip-back"></i>
+          </button>
+          <button id="playBtn" class="ctrl-btn play-btn" title="Play / Pause">
+            <i data-lucide="play"></i>
+          </button>
+          <button id="nextBtn" class="ctrl-btn" title="Next Track">
+            <i data-lucide="skip-forward"></i>
+          </button>
+          <button id="repeatBtn" class="ctrl-btn" title="Repeat Track">
+            <i data-lucide="repeat"></i>
+          </button>
+        </div>
+        <div class="timeline">
+          <span id="playerCurrentTime">0:00</span>
+          <div id="playerProgressBar" class="progress-bar">
+            <span id="playerProgressFill" class="progress" style="width: 0%;"></span>
+          </div>
+          <span id="playerTotalTime">0:30</span>
+        </div>
+      </div>
+
+      <div class="player-actions">
+        <button id="likeBtn" class="ctrl-btn small" title="Favorite">
+          <i data-lucide="heart"></i>
+        </button>
+        <!-- Volume Control -->
+        <div class="volume-control">
+          <button id="muteBtn" class="ctrl-btn small" title="Mute / Unmute">
+            <i data-lucide="volume-2"></i>
+          </button>
+          <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="0.8" title="Volume" />
+        </div>
+        <button id="playerExpandBtn" class="ctrl-btn small" title="Expand View">
+          <i data-lucide="maximize-2"></i>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Expanded Full Player Overlay -->
+    <div id="expandedPlayer" class="expanded-player hidden" aria-live="polite">
+      <div class="expanded-player-header">
+        <span>Now Playing Preview</span>
+        <button id="playerCollapseBtn" class="close-player-btn" aria-label="Collapse player">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div id="expandedArt" class="expanded-player-art"></div>
+      <div class="expanded-player-meta">
+        <h3 id="expandedTitle">No Song Playing</h3>
+        <p id="expandedArtist">Pick any song from your playlist or iTunes search</p>
+      </div>
+      <div class="expanded-player-controls">
+        <button id="expShuffleBtn" class="ctrl-btn" title="Shuffle">
+          <i data-lucide="shuffle"></i>
+        </button>
+        <button id="expPrevBtn" class="ctrl-btn" title="Previous">
+          <i data-lucide="skip-back"></i>
+        </button>
+        <button id="expPlayBtn" class="ctrl-btn play-btn expanded-play" title="Play">
+          <i data-lucide="play"></i>
+        </button>
+        <button id="expNextBtn" class="ctrl-btn" title="Next">
+          <i data-lucide="skip-forward"></i>
+        </button>
+        <button id="expRepeatBtn" class="ctrl-btn" title="Repeat">
+          <i data-lucide="repeat"></i>
+        </button>
+      </div>
+      <div class="expanded-timeline">
+        <span id="expCurrentTime">0:00</span>
+        <div id="expProgressBar" class="progress-bar">
+          <span id="expProgressFill" class="progress" style="width: 0%;"></span>
+        </div>
+        <span id="expTotalTime">0:30</span>
+      </div>
     </div>
 
     <!-- Account Menu Popup -->
@@ -554,6 +581,57 @@
       </div>
     </div>
 
+    <!-- Interactive Change Playlist Picture Modal -->
+    <div id="changeCoverModal" class="modal-overlay hidden">
+      <div class="modal-card cover-modal-card">
+        <div class="modal-header">
+          <h3><i data-lucide="image"></i> Change Playlist Picture</h3>
+          <button class="modal-close-btn" data-close-modal="changeCoverModal">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <form id="changeCoverForm">
+          <div class="cover-picker-layout">
+            <div class="cover-preview-col">
+              <div id="coverPreviewBox" class="cover-preview-box">
+                <span class="cover-preview-badge">Preview</span>
+              </div>
+              <button type="button" id="resetCoverBtn" class="text-link cover-reset-btn">
+                <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i> Reset to Default
+              </button>
+            </div>
+            <div class="cover-options-col">
+              <div class="form-row" style="margin-bottom: 12px;">
+                <label>Upload from Device</label>
+                <input type="file" id="coverFileInput" accept="image/*" class="hidden" />
+                <button type="button" id="coverUploadTriggerBtn" class="secondary-btn cover-upload-btn">
+                  <i data-lucide="upload"></i> Choose Image File
+                </button>
+              </div>
+              <div class="form-row" style="margin-bottom: 12px;">
+                <label for="coverUrlInput">Or Paste Image URL</label>
+                <input type="text" id="coverUrlInput" placeholder="https://example.com/artwork.jpg" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+
+          <div class="cover-suggestions-section">
+            <label class="cover-suggestions-label">Pick from Song Artwork or Presets</label>
+            <div id="coverSuggestionsGrid" class="cover-suggestions-grid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <div class="button-row" style="margin-top: 18px; justify-content: flex-end;">
+            <button type="button" class="secondary-btn" data-close-modal="changeCoverModal">Cancel</button>
+            <button type="submit" class="primary-btn">
+              <i data-lucide="check" style="width: 15px; height: 15px; margin-right: 4px;"></i> Save Picture
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Recommended Playlist Detail Modal -->
     <div id="recommendedPlaylistModal" class="modal-overlay hidden">
       <div class="modal-card recommended-modal-card">
@@ -603,7 +681,7 @@
     </div>
 
     <!-- Core Scripts -->
-    <script src="common.js?v=10"></script>
-    <script src="app.js?v=10"></script>
+    <script src="common.js?v=13"></script>
+    <script src="app.js?v=13"></script>
   </body>
 </html>

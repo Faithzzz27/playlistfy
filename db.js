@@ -176,13 +176,19 @@ function getPlaylists(username) {
   normalizeUser(user);
 
   return [
-    { id: MAIN_LIST, name: 'My Playlist', count: user.playlist.length },
-    ...user.playlists.map((list) => ({ id: list.id, name: list.name, count: list.songs.length })),
+    { id: MAIN_LIST, name: 'My Playlist', count: user.playlist.length, cover: user.mainCover || '' },
+    ...user.playlists.map((list) => ({
+      id: list.id,
+      name: list.name,
+      count: list.songs.length,
+      cover: list.cover || '',
+    })),
   ];
 }
 
-function createPlaylist(username, name) {
+function createPlaylist(username, name, cover = '') {
   const cleanName = String(name || '').trim();
+  const cleanCover = cover ? String(cover).trim() : '';
   const users = readData();
   const user = findUser(users, username);
   if (!user || !cleanName) return null;
@@ -192,10 +198,10 @@ function createPlaylist(username, name) {
     || user.playlists.some((list) => list.name.toLowerCase() === cleanName.toLowerCase());
   if (taken) return null;
 
-  const newList = { id: getNextId(user.playlists), name: cleanName, songs: [] };
+  const newList = { id: getNextId(user.playlists), name: cleanName, cover: cleanCover, songs: [] };
   user.playlists.push(newList);
   writeData(users);
-  return { id: newList.id, name: newList.name, count: 0 };
+  return { id: newList.id, name: newList.name, count: 0, cover: newList.cover };
 }
 
 // Returns the renamed playlist, 'duplicate' if the name is taken, or null if not found.
@@ -215,7 +221,28 @@ function renamePlaylist(username, listId, name) {
 
   list.name = cleanName;
   writeData(users);
-  return { id: list.id, name: list.name, count: list.songs.length };
+  return { id: list.id, name: list.name, count: list.songs.length, cover: list.cover || '' };
+}
+
+function updatePlaylistCover(username, listId, cover) {
+  const cleanCover = cover ? String(cover).trim() : '';
+  const users = readData();
+  const user = findUser(users, username);
+  if (!user) return null;
+  normalizeUser(user);
+
+  if (!listId || String(listId) === MAIN_LIST) {
+    user.mainCover = cleanCover;
+    writeData(users);
+    return { id: MAIN_LIST, name: 'My Playlist', count: user.playlist.length, cover: user.mainCover };
+  }
+
+  const list = user.playlists.find((item) => String(item.id) === String(listId));
+  if (!list) return null;
+
+  list.cover = cleanCover;
+  writeData(users);
+  return { id: list.id, name: list.name, count: list.songs.length, cover: list.cover };
 }
 
 function deletePlaylist(username, listId) {
@@ -242,6 +269,7 @@ module.exports = {
   getPlaylists,
   createPlaylist,
   renamePlaylist,
+  updatePlaylistCover,
   deletePlaylist,
   getNextId,
 };

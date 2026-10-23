@@ -11,6 +11,7 @@ const {
   getPlaylists,
   createPlaylist,
   renamePlaylist,
+  updatePlaylistCover,
   deletePlaylist,
   getNextId,
 } = require('./db');
@@ -18,7 +19,7 @@ const {
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Serve the main application directly at root /
 app.get('/', (req, res) => {
@@ -109,12 +110,12 @@ app.get('/api/playlists', requireLogin, (req, res) => {
 });
 
 app.post('/api/playlists', requireLogin, (req, res) => {
-  const { name } = req.body || {};
+  const { name, cover } = req.body || {};
   if (!name || String(name).trim() === '') {
     return res.status(400).json({ error: 'Playlist name is required.' });
   }
 
-  const newList = createPlaylist(req.username, name);
+  const newList = createPlaylist(req.username, name, cover);
   if (!newList) {
     return res.status(409).json({ error: 'Playlist name already exists.' });
   }
@@ -123,15 +124,40 @@ app.post('/api/playlists', requireLogin, (req, res) => {
 });
 
 app.put('/api/playlists/:id', requireLogin, (req, res) => {
-  const { name } = req.body || {};
-  if (!name || String(name).trim() === '') {
-    return res.status(400).json({ error: 'Playlist name is required.' });
+  const { name, cover } = req.body || {};
+  let result = null;
+
+  if (name !== undefined && String(name).trim() !== '') {
+    result = renamePlaylist(req.username, req.params.id, name);
+    if (result === 'duplicate') {
+      return res.status(409).json({ error: 'Playlist name already exists.' });
+    }
+    if (!result) {
+      return res.status(404).json({ error: 'Playlist not found.' });
+    }
   }
 
-  const result = renamePlaylist(req.username, req.params.id, name);
-  if (result === 'duplicate') {
-    return res.status(409).json({ error: 'Playlist name already exists.' });
+  if (cover !== undefined) {
+    result = updatePlaylistCover(req.username, req.params.id, cover);
+    if (!result) {
+      return res.status(404).json({ error: 'Playlist not found.' });
+    }
   }
+
+  if (!result) {
+    return res.status(400).json({ error: 'Playlist name or cover is required.' });
+  }
+
+  res.json(result);
+});
+
+app.put('/api/playlists/:id/cover', requireLogin, (req, res) => {
+  const { cover } = req.body || {};
+  if (cover === undefined) {
+    return res.status(400).json({ error: 'Cover image is required.' });
+  }
+
+  const result = updatePlaylistCover(req.username, req.params.id, cover);
   if (!result) {
     return res.status(404).json({ error: 'Playlist not found.' });
   }
@@ -325,9 +351,9 @@ app.post('/api/recommended-playlists/:id/import', requireLogin, (req, res) => {
       return res.status(404).json({ error: 'Recommended playlist not found.' });
     }
 
-    let targetPl = createPlaylist(req.username, rec.name);
+    let targetPl = createPlaylist(req.username, rec.name, rec.cover || '');
     if (!targetPl) {
-      targetPl = createPlaylist(req.username, `${rec.name} (Curated)`);
+      targetPl = createPlaylist(req.username, `${rec.name} (Curated)`, rec.cover || '');
     }
 
     if (targetPl && Array.isArray(rec.songs)) {
